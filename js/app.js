@@ -1,52 +1,56 @@
-/* FocusFlow — by Omar Mohamed */
+/* ═══════════════════════════════════════════
+   FocusFlow — by Omar Mohamed
+   All logic: Auth · Timer · Sleep · Habits
+   Water · Notes · Analytics · Profile · Sound
+═══════════════════════════════════════════ */
 
-/* ── Storage helpers ── */
+/* ── Storage ── */
 const DB = {
-  get: (k, def = null) => { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : def; } catch { return def; } },
-  set: (k, v) => localStorage.setItem(k, JSON.stringify(v)),
+  get: (k, d = null) => { try { const v = localStorage.getItem(k); return v != null ? JSON.parse(v) : d; } catch { return d; } },
+  set: (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
   del: (k) => localStorage.removeItem(k),
 };
+const UK = (sub) => `ff_${currentUser}_${sub}`;
 
-/* ── Auth ── */
+/* ── Auth State ── */
 let currentUser = null;
 
 function getUsers() { return DB.get('ff_users', {}); }
-function saveUsers(u) { DB.set('ff_users', u); }
-function userKey(uid, sub) { return `ff_user_${uid}_${sub}`; }
+function setUsers(u) { DB.set('ff_users', u); }
 
-function showAuthTab(tab) {
-  document.getElementById('login-form').style.display = tab === 'login' ? '' : 'none';
-  document.getElementById('register-form').style.display = tab === 'register' ? '' : 'none';
-  document.querySelectorAll('.tab-btn').forEach((b, i) => b.classList.toggle('active', (i === 0) === (tab === 'login')));
+function showAuthTab(t) {
+  document.getElementById('login-form').style.display    = t === 'login' ? '' : 'none';
+  document.getElementById('register-form').style.display = t === 'register' ? '' : 'none';
+  document.querySelectorAll('.auth-tab').forEach((b, i) => b.classList.toggle('active', (i === 0) === (t === 'login')));
 }
 
 function doRegister() {
-  const name = document.getElementById('reg-name').value.trim();
-  const email = document.getElementById('reg-email').value.trim().toLowerCase();
-  const pw = document.getElementById('reg-pw').value;
-  const err = document.getElementById('reg-err');
+  const name = document.getElementById('r-name').value.trim();
+  const email = document.getElementById('r-email').value.trim().toLowerCase();
+  const pw = document.getElementById('r-pw').value;
+  const err = document.getElementById('r-err');
   if (!name || !email || !pw) { err.textContent = 'All fields required.'; return; }
-  if (pw.length < 6) { err.textContent = 'Password must be 6+ characters.'; return; }
+  if (pw.length < 6) { err.textContent = 'Password must be at least 6 characters.'; return; }
   const users = getUsers();
-  if (Object.values(users).find(u => u.email === email)) { err.textContent = 'Email already registered.'; return; }
-  const uid = 'u_' + Date.now();
+  if (Object.values(users).some(u => u.email === email)) { err.textContent = 'Email already registered.'; return; }
+  const uid = 'u' + Date.now();
   users[uid] = { uid, name, email, pw: btoa(pw), joined: new Date().toISOString() };
-  saveUsers(users);
+  setUsers(users);
   DB.set(`ff_profile_${uid}`, { name, email, bio: '', goal: 120, sleepGoal: 8, avatar: '' });
-  login(uid);
+  startSession(uid);
 }
 
 function doLogin() {
-  const email = document.getElementById('login-email').value.trim().toLowerCase();
-  const pw = document.getElementById('login-pw').value;
-  const err = document.getElementById('login-err');
+  const email = document.getElementById('l-email').value.trim().toLowerCase();
+  const pw    = document.getElementById('l-pw').value;
+  const err   = document.getElementById('l-err');
   const users = getUsers();
-  const user = Object.values(users).find(u => u.email === email && u.pw === btoa(pw));
-  if (!user) { err.textContent = 'Invalid email or password.'; return; }
-  login(user.uid);
+  const user  = Object.values(users).find(u => u.email === email && u.pw === btoa(pw));
+  if (!user) { err.textContent = 'Incorrect email or password.'; return; }
+  startSession(user.uid);
 }
 
-function login(uid) {
+function startSession(uid) {
   DB.set('ff_session', uid);
   currentUser = uid;
   document.getElementById('auth-screen').style.display = 'none';
@@ -55,343 +59,458 @@ function login(uid) {
 }
 
 function doLogout() {
-  if (timerRunning) stopTimer();
+  stopTimer(); stopAmbient();
   DB.del('ff_session');
   currentUser = null;
   document.getElementById('app-screen').style.display = 'none';
   document.getElementById('auth-screen').style.display = '';
-  document.getElementById('login-err').textContent = '';
 }
 
-function togglePw(id, icon) {
+function togglePw(id, el) {
   const inp = document.getElementById(id);
-  const isText = inp.type === 'text';
-  inp.type = isText ? 'password' : 'text';
-  icon.className = isText ? 'ti ti-eye' : 'ti ti-eye-off';
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+  el.className = 'ti pw-toggle ' + (inp.type === 'text' ? 'ti-eye-off' : 'ti-eye');
 }
 
-/* ── Init ── */
+/* ── App Init ── */
 function initApp() {
   loadProfile();
-  navigate('dashboard');
-  renderDots();
+  initTimer();
   renderTasks();
-  setTimerMode('focus');
-  loadSleepPage();
-  loadHabits();
-  setupSleepDate();
+  navigate('dashboard');
+  setupSleepDefaults();
+  loadWaterPage();
+  loadNotesPage();
+  // Service worker
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
 }
 
 /* ── Navigation ── */
-function navigate(page) {
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-  document.getElementById('page-' + page).classList.add('active');
-  document.querySelector(`[data-page="${page}"]`)?.classList.add('active');
-  document.getElementById('topbar-title').textContent = { dashboard: 'Dashboard', timer: 'Pomodoro timer', sleep: 'Sleep tracker', habits: 'Habits', analytics: 'Analytics', profile: 'Profile' }[page] || page;
-  if (page === 'dashboard') renderDashboard();
-  if (page === 'analytics') renderAnalytics();
-  if (page === 'profile') renderProfile();
-  if (page === 'habits') { loadHabits(); renderHabitDate(); }
-  if (page === 'sleep') loadSleepPage();
+const PAGE_TITLES = {
+  dashboard:'Dashboard', timer:'Pomodoro Timer', sleep:'Sleep Tracker',
+  habits:'Habits', water:'Water Tracker', notes:'Study Notes',
+  analytics:'Analytics', profile:'Profile'
+};
+
+function navigate(p) {
+  unlockAudio(); // ensure audio context ready on interaction
+  document.querySelectorAll('.page').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.sn, .bn').forEach(el => el.classList.remove('active'));
+  document.getElementById('page-' + p).classList.add('active');
+  document.querySelectorAll(`[data-p="${p}"]`).forEach(el => el.classList.add('active'));
+  document.getElementById('topbar-title').textContent = PAGE_TITLES[p] || p;
   closeSidebar();
+  if (p === 'dashboard') renderDashboard();
+  if (p === 'sleep')  { setupSleepDefaults(); loadSleepPage(); }
+  if (p === 'habits') loadHabits();
+  if (p === 'water')  loadWaterPage();
+  if (p === 'notes')  loadNotesPage();
+  if (p === 'analytics') renderAnalytics();
+  if (p === 'profile') renderProfile();
 }
 
 function toggleSidebar() {
   document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('sb-overlay').classList.toggle('open');
 }
 function closeSidebar() {
   document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sb-overlay').classList.remove('open');
 }
 
 /* ── Profile ── */
 function getProfile() {
-  return DB.get(`ff_profile_${currentUser}`, { name: 'Omar Mohamed', email: '', bio: '', goal: 120, sleepGoal: 8, avatar: '' });
+  return DB.get(`ff_profile_${currentUser}`, { name: '', email: '', bio: '', goal: 120, sleepGoal: 8, avatar: '' });
 }
-function saveProfileData(p) { DB.set(`ff_profile_${currentUser}`, p); }
+function setProfile(p) { DB.set(`ff_profile_${currentUser}`, p); }
 
-function loadProfile() {
-  const p = getProfile();
-  const initials = p.name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
-  setAvatarEl('sb-avatar', p.avatar, initials);
-  setAvatarEl('tb-avatar', p.avatar, initials);
-  setAvatarEl('dash-avatar', p.avatar, initials);
-  document.getElementById('sb-name').textContent = p.name;
-  document.getElementById('dash-greeting').textContent = greet(p.name);
-  document.getElementById('dash-date').textContent = new Date().toLocaleDateString('en-GB', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+function initials(name) {
+  return name.split(' ').filter(Boolean).map(w => w[0]).join('').toUpperCase().slice(0, 2) || '??';
 }
 
-function setAvatarEl(id, avatar, initials) {
+function setAvEl(id, avatar, init) {
   const el = document.getElementById(id);
   if (!el) return;
   if (avatar) { el.innerHTML = `<img src="${avatar}" alt="avatar"/>`; }
-  else { el.textContent = initials; }
+  else { el.textContent = init; }
 }
 
-function greet(name) {
+function loadProfile() {
+  const p = getProfile();
+  const ini = initials(p.name);
+  ['sb-av','tb-av','dash-av','pr-av'].forEach(id => setAvEl(id, p.avatar, ini));
+  document.getElementById('sb-name').textContent = p.name || 'User';
+  document.getElementById('dash-greeting').textContent = greeting(p.name);
+  document.getElementById('dash-date').textContent = new Date().toLocaleDateString('en-GB', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+}
+
+function greeting(name) {
   const h = new Date().getHours();
-  const g = h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening';
-  return `${g}, ${name.split(' ')[0]} 👋`;
+  const g = h < 5 ? 'Good night' : h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening';
+  return `${g}, ${name.split(' ')[0] || 'there'} 👋`;
 }
 
 function renderProfile() {
   const p = getProfile();
-  const initials = p.name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
-  setAvatarEl('profile-avatar', p.avatar, initials);
-  document.getElementById('profile-name-big').textContent = p.name;
-  document.getElementById('profile-email-big').textContent = p.email || '';
-  document.getElementById('edit-name').value = p.name;
-  document.getElementById('edit-bio').value = p.bio || '';
-  document.getElementById('edit-goal').value = p.goal || 120;
-  document.getElementById('edit-sleep-goal').value = p.sleepGoal || 8;
+  const users = getUsers();
+  const user  = users[currentUser] || {};
+  const ini   = initials(p.name);
+  setAvEl('pr-av', p.avatar, ini);
+  document.getElementById('pr-name').textContent  = p.name;
+  document.getElementById('pr-email').textContent = p.email;
+  document.getElementById('pr-joined').textContent = user.joined ? 'Joined ' + new Date(user.joined).toLocaleDateString('en-GB', { month:'long', year:'numeric' }) : '';
+  document.getElementById('pr-edit-name').value = p.name;
+  document.getElementById('pr-edit-bio').value  = p.bio || '';
+  document.getElementById('pr-edit-goal').value = p.goal || 120;
+  document.getElementById('pr-edit-sg').value   = p.sleepGoal || 8;
   renderBadges();
   renderAchievements();
 }
 
 function saveProfile() {
   const p = getProfile();
-  p.name = document.getElementById('edit-name').value.trim() || p.name;
-  p.bio = document.getElementById('edit-bio').value.trim();
-  p.goal = parseInt(document.getElementById('edit-goal').value) || 120;
-  p.sleepGoal = parseFloat(document.getElementById('edit-sleep-goal').value) || 8;
-  saveProfileData(p);
+  p.name      = document.getElementById('pr-edit-name').value.trim() || p.name;
+  p.bio       = document.getElementById('pr-edit-bio').value.trim();
+  p.goal      = parseInt(document.getElementById('pr-edit-goal').value) || 120;
+  p.sleepGoal = parseFloat(document.getElementById('pr-edit-sg').value) || 8;
+  setProfile(p);
   loadProfile();
   renderProfile();
-  toast('Profile saved!');
+  toast('Profile saved! ✓');
 }
 
-function uploadAvatar(input) {
-  const file = input.files[0];
+function uploadAv(inp) {
+  const file = inp.files[0];
   if (!file) return;
   const reader = new FileReader();
   reader.onload = e => {
-    const p = getProfile();
-    p.avatar = e.target.result;
-    saveProfileData(p);
-    loadProfile();
-    renderProfile();
-    toast('Photo updated!');
+    const p = getProfile(); p.avatar = e.target.result; setProfile(p);
+    loadProfile(); renderProfile(); toast('Photo updated! 📸');
   };
   reader.readAsDataURL(file);
 }
 
+/* Badges */
 function renderBadges() {
   const logs = getLogs();
-  const focusMin = logs.filter(l => l.type === 'focus').reduce((s, l) => s + (l.minutes || 0), 0);
+  const fm = focusMinTotal(logs);
+  const sl = getSleepLogs().length;
   const badges = [];
-  if (focusMin >= 60) badges.push('1h Focus');
-  if (focusMin >= 600) badges.push('10h Focus');
-  if (getSleepLogs().length >= 7) badges.push('7-Day Sleeper');
-  if (getHabits().length >= 3) badges.push('Habit Builder');
-  const el = document.getElementById('profile-badges');
-  el.innerHTML = badges.length ? badges.map(b => `<span class="badge">${b}</span>`).join('') : '<span style="font-size:13px;color:var(--text3)">Complete sessions to earn badges</span>';
+  if (fm >= 60)  badges.push({ label: '1h Focus',       color: 'purple' });
+  if (fm >= 600) badges.push({ label: '10h Focus',      color: 'purple' });
+  if (sl >= 7)   badges.push({ label: '7-Day Sleeper',  color: 'blue'   });
+  if (sl >= 30)  badges.push({ label: '30-Night Streak',color: 'blue'   });
+  if (getHabits().length >= 3) badges.push({ label: 'Habit Builder', color: 'green' });
+  if (getWaterLogs()[todayStr()] >= 8) badges.push({ label: 'Hydrated',  color: 'blue' });
+  if (getNotes().length >= 5) badges.push({ label: 'Note Taker', color: 'amber' });
+  const el = document.getElementById('pr-badges');
+  el.innerHTML = badges.length
+    ? badges.map(b => `<span class="badge ${b.color}">${b.label}</span>`).join('')
+    : '<span style="font-size:12px;color:var(--text3)">Complete sessions to earn badges</span>';
 }
 
-const ACHIEVEMENTS = [
-  { id: 'first_session', icon: '🎯', name: 'First session', desc: 'Complete your first focus session', check: (logs) => logs.filter(l => l.type === 'session').length >= 1 },
-  { id: 'ten_sessions', icon: '🔥', name: 'On fire', desc: 'Complete 10 focus sessions', check: (logs) => logs.filter(l => l.type === 'session').length >= 10 },
-  { id: 'hundred_sessions', icon: '💯', name: 'Century', desc: 'Complete 100 focus sessions', check: (logs) => logs.filter(l => l.type === 'session').length >= 100 },
-  { id: 'first_sleep', icon: '🌙', name: 'Early to bed', desc: 'Log your first sleep', check: () => getSleepLogs().length >= 1 },
-  { id: 'sleep_week', icon: '😴', name: 'Sleep champion', desc: 'Log sleep for 7 days', check: () => getSleepLogs().length >= 7 },
-  { id: 'five_hours', icon: '⏰', name: 'Deep work', desc: 'Focus for 5 hours total', check: (logs) => logs.filter(l => l.type === 'focus').reduce((s, l) => s + (l.minutes || 0), 0) >= 300 },
-  { id: 'habit_streak', icon: '✅', name: 'Habit master', desc: 'Complete all habits for a day', check: () => { const h = getHabits(); const today = todayStr(); return h.length > 0 && h.every(hb => (DB.get(userKey(currentUser, 'habit_log'), {}))[hb.id + '_' + today]); } },
-  { id: 'profile_photo', icon: '📸', name: 'Face behind the focus', desc: 'Upload a profile photo', check: () => !!getProfile().avatar },
+const ACH = [
+  { id: 'a1', ico: '🎯', name: 'First Focus',     desc: 'Complete your first session',   check: l => l.filter(x => x.type==='session').length >= 1 },
+  { id: 'a2', ico: '🔥', name: 'On Fire',          desc: '10 focus sessions',             check: l => l.filter(x => x.type==='session').length >= 10 },
+  { id: 'a3', ico: '💯', name: 'Century',           desc: '100 focus sessions',            check: l => l.filter(x => x.type==='session').length >= 100 },
+  { id: 'a4', ico: '⏰', name: 'Deep Work',         desc: '5 hours total focus',           check: l => focusMinTotal(l) >= 300 },
+  { id: 'a5', ico: '🌙', name: 'Early to Bed',      desc: 'Log your first sleep',         check: () => getSleepLogs().length >= 1 },
+  { id: 'a6', ico: '😴', name: 'Sleep Champion',    desc: '7 nights logged',              check: () => getSleepLogs().length >= 7 },
+  { id: 'a7', ico: '💧', name: 'Hydrated',          desc: 'Hit water goal for a day',     check: () => { const wl=getWaterLogs(); const p=getProfile(); return Object.values(wl).some(v=>v>=(p.goal_water||8)); } },
+  { id: 'a8', ico: '📚', name: 'Note Taker',        desc: 'Write 5 study notes',          check: () => getNotes().length >= 5 },
+  { id: 'a9', ico: '✅', name: 'Habit Builder',     desc: 'Add 3 habits',                 check: () => getHabits().length >= 3 },
+  { id:'a10', ico: '📸', name: 'Face of Focus',     desc: 'Upload a profile photo',       check: () => !!getProfile().avatar },
 ];
 
 function renderAchievements() {
   const logs = getLogs();
-  const grid = document.getElementById('achievements-grid');
-  grid.innerHTML = ACHIEVEMENTS.map(a => {
-    const done = a.check(logs);
-    return `<div class="ach-item ${done ? '' : 'locked'}">
-      <div class="ach-icon">${a.icon}</div>
+  document.getElementById('ach-grid').innerHTML = ACH.map(a => {
+    const ok = a.check(logs);
+    return `<div class="ach ${ok ? 'unlocked' : 'locked'}">
+      <div class="ach-ico">${a.ico}</div>
       <div class="ach-name">${a.name}</div>
       <div class="ach-desc">${a.desc}</div>
     </div>`;
   }).join('');
 }
 
-/* ── Logs ── */
-function getLogs() { return DB.get(userKey(currentUser, 'logs'), []); }
+/* ── Activity Logs ── */
+function getLogs() { return DB.get(UK('logs'), []); }
 function addLog(entry) {
   const logs = getLogs();
   logs.unshift({ ...entry, id: Date.now(), ts: new Date().toISOString() });
-  DB.set(userKey(currentUser, 'logs'), logs.slice(0, 1000));
+  DB.set(UK('logs'), logs.slice(0, 2000));
 }
-
+function focusMinTotal(logs) { return logs.filter(l => l.type === 'focus').reduce((s, l) => s + (l.minutes || 0), 0); }
 function todayStr() { return new Date().toISOString().slice(0, 10); }
+function todayFocusMin() { return getLogs().filter(l => l.type === 'focus' && l.date === todayStr()).reduce((s, l) => s + (l.minutes || 0), 0); }
 
-function getTodayFocusMin() {
-  return getLogs().filter(l => l.type === 'focus' && l.date === todayStr()).reduce((s, l) => s + (l.minutes || 0), 0);
-}
-
-/* ── Dashboard ── */
-let focusChart = null, sleepChart = null;
-
-function renderDashboard() {
-  loadProfile();
-  const focusMin = getTodayFocusMin();
-  document.getElementById('stat-focus-today').textContent = focusMin >= 60 ? Math.round(focusMin / 6) / 10 + 'h' : focusMin + 'm';
-  const sleepLogs = getSleepLogs();
-  const lastSleep = sleepLogs[0];
-  document.getElementById('stat-sleep-last').textContent = lastSleep ? lastSleep.hours.toFixed(1) + 'h' : '—';
-  document.getElementById('stat-streak').textContent = calcFocusStreak();
-  const tasks = getTasks();
-  const done = tasks.filter(t => t.done).length;
-  document.getElementById('stat-tasks-done').textContent = `${done}/${tasks.length}`;
-  renderActivityLog();
-  renderWeeklyFocusChart();
-  renderWeeklySleepChart();
-}
-
-function renderActivityLog() {
-  const logs = getLogs().slice(0, 20);
-  const el = document.getElementById('activity-log');
-  if (!logs.length) { el.innerHTML = '<p style="font-size:13px;color:var(--text3);padding:12px 0">No activity yet — start your first session!</p>'; return; }
-  el.innerHTML = logs.map(l => `
-    <div class="log-item">
-      <div class="log-dot ${l.type}"></div>
-      <span class="log-text">${l.label}</span>
-      <span class="log-time">${fmtLogTime(l.ts)}</span>
-    </div>`).join('');
-}
-
-function fmtLogTime(ts) {
-  const d = new Date(ts);
-  const now = new Date();
-  const diff = (now - d) / 60000;
-  if (diff < 1) return 'just now';
-  if (diff < 60) return Math.round(diff) + 'm ago';
+function logTimeAgo(ts) {
+  const diff = (Date.now() - new Date(ts)) / 60000;
+  if (diff < 1)    return 'just now';
+  if (diff < 60)   return Math.round(diff) + 'm ago';
   if (diff < 1440) return Math.round(diff / 60) + 'h ago';
-  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+  return new Date(ts).toLocaleDateString('en-GB', { day:'numeric', month:'short' });
 }
 
-function getLast7Days() {
+function last7Days() {
   return Array.from({ length: 7 }, (_, i) => {
     const d = new Date(); d.setDate(d.getDate() - (6 - i));
     return d.toISOString().slice(0, 10);
   });
 }
 
-function renderWeeklyFocusChart() {
-  const days = getLast7Days();
-  const logs = getLogs();
-  const data = days.map(d => logs.filter(l => l.type === 'focus' && l.date === d).reduce((s, l) => s + (l.minutes || 0), 0));
-  const labels = days.map(d => new Date(d).toLocaleDateString('en-GB', { weekday: 'short' }));
-  if (focusChart) focusChart.destroy();
-  const ctx = document.getElementById('chart-focus').getContext('2d');
-  focusChart = new Chart(ctx, { type: 'bar', data: { labels, datasets: [{ data, backgroundColor: '#534AB7', borderRadius: 6 }] }, options: chartOpts('min') });
-}
-
-function renderWeeklySleepChart() {
-  const days = getLast7Days();
-  const slogs = getSleepLogs();
-  const data = days.map(d => { const s = slogs.find(l => l.date === d); return s ? +s.hours.toFixed(1) : 0; });
-  const labels = days.map(d => new Date(d).toLocaleDateString('en-GB', { weekday: 'short' }));
-  if (sleepChart) sleepChart.destroy();
-  const ctx = document.getElementById('chart-sleep').getContext('2d');
-  sleepChart = new Chart(ctx, { type: 'bar', data: { labels, datasets: [{ data, backgroundColor: '#185FA5', borderRadius: 6 }] }, options: chartOpts('h') });
-}
-
-function chartOpts(unit) {
-  return {
-    responsive: true, maintainAspectRatio: false,
-    plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ctx.raw + unit } } },
-    scales: { x: { grid: { display: false }, ticks: { font: { size: 11 } } }, y: { grid: { color: 'rgba(128,128,128,0.1)' }, ticks: { font: { size: 11 } } } }
-  };
-}
-
-function calcFocusStreak() {
-  const logs = getLogs();
-  let streak = 0, day = new Date();
+function focusStreak() {
+  const logs = getLogs(); let s = 0;
+  const d = new Date();
   while (true) {
-    const d = day.toISOString().slice(0, 10);
-    const hasFocus = logs.some(l => l.type === 'focus' && l.date === d);
-    if (!hasFocus) break;
-    streak++;
-    day.setDate(day.getDate() - 1);
+    const str = d.toISOString().slice(0, 10);
+    if (!logs.some(l => l.type === 'focus' && l.date === str)) break;
+    s++; d.setDate(d.getDate() - 1);
   }
-  return streak;
+  return s;
 }
 
-/* ── Timer ── */
-const timerDurations = { focus: 25, short: 5, long: 15 };
-let timerMode = 'focus';
-let timerTotal = 25 * 60;
-let timerRemaining = 25 * 60;
-let timerRunning = false;
-let timerInterval = null;
-let sessionsToday = 0;
-let audioCtx = null;
+function renderLogList(containerId, logs, max = 20) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  const items = logs.slice(0, max);
+  if (!items.length) {
+    el.innerHTML = `<div class="empty-state"><i class="ti ti-list"></i>No activity yet</div>`;
+    return;
+  }
+  el.innerHTML = items.map(l => `
+    <div class="log-item">
+      <div class="log-dot ${l.type}"></div>
+      <span class="log-text">${escHtml(l.label)}</span>
+      <span class="log-time">${logTimeAgo(l.ts)}</span>
+    </div>`).join('');
+}
 
-function getAudioCtx() { if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); return audioCtx; }
-function playTone(f, type, dur, gain) {
+/* ── Dashboard ── */
+let dashCharts = {};
+
+function renderDashboard() {
+  loadProfile();
+  // KPIs
+  const fm = todayFocusMin();
+  document.getElementById('kpi-focus').textContent  = fm >= 60 ? (fm/60).toFixed(1)+'h' : fm+'m';
+  const sl = getSleepLogs()[0];
+  document.getElementById('kpi-sleep').textContent  = sl ? sl.hours.toFixed(1)+'h' : '—';
+  document.getElementById('kpi-streak').textContent = focusStreak();
+  const habits = getHabits(), hlog = getHabitLog();
+  const hDone = habits.filter(h => hlog[h.id+'_'+todayStr()]).length;
+  document.getElementById('kpi-habits').textContent = `${hDone}/${habits.length}`;
+  // Charts
+  renderWeekChart('c-dash-focus', getLogs(), 'focus', '#7c6fcd', 'min');
+  renderWeekChart('c-dash-sleep', getSleepLogs().map(s => ({ type:'sleep', date: s.date, minutes: s.hours*60 })), 'sleep', '#3a85e0', 'h', 60);
+  // Log
+  renderLogList('dash-log', getLogs());
+  // Quote
+  const QUOTES = [
+    '"Deep work is the superpower of our age." — Cal Newport',
+    '"The secret of getting ahead is getting started." — Mark Twain',
+    '"Focus is the art of knowing what to ignore."',
+    '"Small steps every day lead to extraordinary results."',
+    '"An investment in knowledge pays the best interest." — Benjamin Franklin',
+    '"Study hard, dream big, work harder than yesterday."',
+    '"Your future self will thank you for every hour of focus today."',
+    '"Discipline is the bridge between goals and accomplishment." — Jim Rohn',
+  ];
+  document.getElementById('dash-quote').textContent = QUOTES[new Date().getDate() % QUOTES.length];
+}
+
+function renderWeekChart(canvasId, logs, type, color, unit, divBy = 1) {
+  const days = last7Days();
+  const data  = days.map(d => +(logs.filter(l => l.type === type && l.date === d).reduce((s, l) => s + (l.minutes || 0), 0) / divBy).toFixed(1));
+  const labels = days.map(d => new Date(d + 'T00:00:00').toLocaleDateString('en-GB', { weekday:'short' }));
+  if (dashCharts[canvasId]) dashCharts[canvasId].destroy();
+  const ctx = document.getElementById(canvasId);
+  if (!ctx) return;
+  dashCharts[canvasId] = new Chart(ctx.getContext('2d'), {
+    type: 'bar',
+    data: { labels, datasets: [{ data, backgroundColor: color + '55', borderColor: color, borderWidth: 1.5, borderRadius: 6, borderSkipped: false }] },
+    options: { responsive:true, maintainAspectRatio:false, plugins:{ legend:{display:false}, tooltip:{callbacks:{label:c=>c.raw+unit}} }, scales:{ x:{grid:{display:false}, ticks:{color:'#5c5a65',font:{size:11}}}, y:{grid:{color:'rgba(255,255,255,0.04)'}, ticks:{color:'#5c5a65',font:{size:11}}} } }
+  });
+}
+
+/* ── AUDIO ENGINE ── */
+let audioCtx = null;
+let ambientNodes = [];
+let ambientType = 'off';
+
+function unlockAudio() {
   try {
-    const ctx = getAudioCtx();
-    const o = ctx.createOscillator(), g = ctx.createGain();
-    o.connect(g); g.connect(ctx.destination);
-    o.type = type; o.frequency.setValueAtTime(f, ctx.currentTime);
-    g.gain.setValueAtTime(gain, ctx.currentTime);
-    g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + dur);
-    o.start(); o.stop(ctx.currentTime + dur);
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
   } catch {}
 }
-function playBell() {
-  if (!document.getElementById('snd-on').checked) return;
-  const notes = timerMode === 'focus' ? [523, 659, 784, 1047] : [784, 659, 523];
-  notes.forEach((f, i) => setTimeout(() => playTone(f, 'sine', 0.8, 0.22), i * 210));
-}
-function playTick() {
-  if (!document.getElementById('tick-on').checked || !timerRunning) return;
+
+function playTone(freq, type = 'sine', dur = 0.8, gain = 0.2, startDelay = 0) {
   try {
-    const ctx = getAudioCtx();
-    const buf = ctx.createBuffer(1, ctx.sampleRate * 0.012, ctx.sampleRate);
-    const d = buf.getChannelData(0);
-    for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * 0.07;
-    const src = ctx.createBufferSource(), g = ctx.createGain();
-    g.gain.setValueAtTime(0.1, ctx.currentTime);
+    unlockAudio();
+    const ctx = audioCtx;
+    const osc = ctx.createOscillator();
+    const g   = ctx.createGain();
+    osc.connect(g); g.connect(ctx.destination);
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, ctx.currentTime + startDelay);
+    g.gain.setValueAtTime(0, ctx.currentTime + startDelay);
+    g.gain.linearRampToValueAtTime(gain, ctx.currentTime + startDelay + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + startDelay + dur);
+    osc.start(ctx.currentTime + startDelay);
+    osc.stop(ctx.currentTime + startDelay + dur);
+  } catch {}
+}
+
+function playBell() {
+  if (!document.getElementById('snd')?.checked) return;
+  unlockAudio();
+  if (timerMode === 'focus') {
+    // Triumphant ascending chord
+    [[523,0],[659,0.18],[784,0.36],[1047,0.54],[1319,0.72]].forEach(([f,d]) => playTone(f,'sine',1.2,0.18,d));
+  } else {
+    // Gentle descending
+    [[784,0],[659,0.2],[523,0.4]].forEach(([f,d]) => playTone(f,'sine',0.9,0.15,d));
+  }
+}
+
+function playTick() {
+  if (!document.getElementById('tick')?.checked || !timerRunning) return;
+  try {
+    unlockAudio();
+    const ctx = audioCtx;
+    const buf = ctx.createBuffer(1, Math.floor(ctx.sampleRate * 0.012), ctx.sampleRate);
+    const data = buf.getChannelData(0);
+    for (let i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1) * 0.06;
+    const src = ctx.createBufferSource();
+    const g   = ctx.createGain();
+    g.gain.setValueAtTime(0.08, ctx.currentTime);
     g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.012);
     src.buffer = buf; src.connect(g); g.connect(ctx.destination); src.start();
   } catch {}
 }
 
-function fmtTime(s) { return String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0'); }
-
-function ringColor() { return { focus: '#534AB7', short: '#0F6E56', long: '#185FA5' }[timerMode]; }
-
-function updateRingDisplay() {
-  const circ = 2 * Math.PI * 100;
-  const prog = document.getElementById('ring-prog');
-  prog.style.strokeDasharray = circ;
-  prog.style.strokeDashoffset = circ * (1 - timerRemaining / timerTotal);
-  prog.style.stroke = ringColor();
-  document.getElementById('timer-disp').textContent = fmtTime(timerRemaining);
+/* Ambient sounds */
+function setAmbient(type, btn) {
+  unlockAudio();
+  stopAmbient();
+  document.querySelectorAll('.amb-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  ambientType = type;
+  if (type === 'off') return;
+  startAmbient(type);
 }
 
-function setTimerMode(m) {
+function startAmbient(type) {
+  try {
+    unlockAudio();
+    const ctx = audioCtx;
+    if (type === 'white' || type === 'brown') {
+      const bufSec = 2;
+      const buf = ctx.createBuffer(1, ctx.sampleRate * bufSec, ctx.sampleRate);
+      const data = buf.getChannelData(0);
+      if (type === 'white') {
+        for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
+      } else {
+        let last = 0;
+        for (let i = 0; i < data.length; i++) { last = (last + 0.02 * (Math.random() * 2 - 1)) / 1.02; data[i] = last * 3.5; }
+      }
+      const src = ctx.createBufferSource();
+      const g   = ctx.createGain();
+      src.buffer = buf; src.loop = true;
+      g.gain.setValueAtTime(type === 'white' ? 0.04 : 0.12, ctx.currentTime);
+      src.connect(g); g.connect(ctx.destination); src.start();
+      ambientNodes.push(src, g);
+    } else if (type === 'rain') {
+      // Rain = filtered white noise
+      const buf = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate);
+      const data = buf.getChannelData(0);
+      for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
+      const src    = ctx.createBufferSource();
+      const filter = ctx.createBiquadFilter();
+      const g      = ctx.createGain();
+      src.buffer = buf; src.loop = true;
+      filter.type = 'bandpass'; filter.frequency.value = 400; filter.Q.value = 0.5;
+      g.gain.setValueAtTime(0.18, ctx.currentTime);
+      src.connect(filter); filter.connect(g); g.connect(ctx.destination); src.start();
+      ambientNodes.push(src, filter, g);
+    } else if (type === 'cafe') {
+      // Cafe = brown noise + occasional low tones
+      const buf  = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate);
+      const data = buf.getChannelData(0);
+      let last = 0;
+      for (let i = 0; i < data.length; i++) { last = (last + 0.02 * (Math.random() * 2 - 1)) / 1.02; data[i] = last * 3; }
+      const src = ctx.createBufferSource();
+      const g   = ctx.createGain();
+      src.buffer = buf; src.loop = true;
+      g.gain.setValueAtTime(0.08, ctx.currentTime);
+      src.connect(g); g.connect(ctx.destination); src.start();
+      ambientNodes.push(src, g);
+      // Add subtle murmur
+      const osc = ctx.createOscillator();
+      const og  = ctx.createGain();
+      osc.type = 'sawtooth'; osc.frequency.setValueAtTime(80, ctx.currentTime);
+      og.gain.setValueAtTime(0.012, ctx.currentTime);
+      osc.connect(og); og.connect(ctx.destination); osc.start();
+      ambientNodes.push(osc, og);
+    }
+  } catch {}
+}
+
+function stopAmbient() {
+  ambientNodes.forEach(n => { try { n.stop ? n.stop() : n.disconnect(); } catch {} });
+  ambientNodes = [];
+}
+
+/* ── TIMER ── */
+const DUR = { focus: 25, short: 5, long: 15 };
+let timerMode      = 'focus';
+let timerTotal     = 25 * 60;
+let timerRemaining = 25 * 60;
+let timerRunning   = false;
+let timerInterval  = null;
+let sessCount      = 0;
+
+function fmtTime(s) { return String(Math.floor(s/60)).padStart(2,'0') + ':' + String(s%60).padStart(2,'0'); }
+
+function modeColor() { return { focus:'#7c6fcd', short:'#22c97a', long:'#3a85e0' }[timerMode]; }
+
+function updateRing() {
+  const circ = 2 * Math.PI * 98;
+  const fg   = document.getElementById('ring-fg');
+  fg.style.strokeDasharray  = circ;
+  fg.style.strokeDashoffset = circ * (1 - timerRemaining / timerTotal);
+  fg.style.stroke = modeColor();
+  document.getElementById('t-disp').textContent = fmtTime(timerRemaining);
+}
+
+function initTimer() {
+  setMode('focus');
+  renderSessDots();
+  updateTimerStats();
+}
+
+function setMode(m) {
   if (timerRunning) stopTimer();
   timerMode = m;
-  timerTotal = timerDurations[m] * 60;
+  timerTotal = DUR[m] * 60;
   timerRemaining = timerTotal;
-  document.querySelectorAll('.mode-tab').forEach((t, i) => t.classList.toggle('active', ['focus', 'short', 'long'][i] === m));
-  const lbl = { focus: 'focus time', short: 'short break', long: 'long break' };
-  document.getElementById('timer-mode-lbl').textContent = lbl[m];
+  document.querySelectorAll('.mtab').forEach((t, i) => t.classList.toggle('active', ['focus','short','long'][i] === m));
+  document.getElementById('t-lbl').textContent = { focus:'FOCUS TIME', short:'SHORT BREAK', long:'LONG BREAK' }[m];
   document.getElementById('play-icon').className = 'ti ti-player-play';
-  updateRingDisplay();
+  updateRing();
 }
 
-function toggleTimer() { timerRunning ? stopTimer() : startTimer(); }
+function toggleTimer() {
+  unlockAudio();
+  timerRunning ? stopTimer() : startTimer();
+}
 
 function startTimer() {
   timerRunning = true;
   document.getElementById('play-icon').className = 'ti ti-player-pause';
-  timerInterval = setInterval(() => {
-    if (timerRemaining <= 0) { onTimerEnd(); return; }
-    timerRemaining--;
-    playTick();
-    updateRingDisplay();
-    updateTimerStats();
-  }, 1000);
+  timerInterval = setInterval(timerTick, 1000);
 }
 
 function stopTimer() {
@@ -400,365 +519,527 @@ function stopTimer() {
   document.getElementById('play-icon').className = 'ti ti-player-play';
 }
 
-function resetTimer() { stopTimer(); timerRemaining = timerTotal; updateRingDisplay(); }
-function skipTimerSession() { stopTimer(); onTimerEnd(true); }
+function timerTick() {
+  if (timerRemaining <= 0) { onSessionEnd(); return; }
+  timerRemaining--;
+  playTick();
+  updateRing();
+  // Update page title with time
+  document.title = `${fmtTime(timerRemaining)} — FocusFlow`;
+}
 
-function onTimerEnd(skipped = false) {
+function resetTimer() { unlockAudio(); stopTimer(); timerRemaining = timerTotal; updateRing(); }
+function skipSession() { unlockAudio(); stopTimer(); onSessionEnd(true); }
+
+function onSessionEnd(skipped = false) {
   stopTimer();
-  timerRemaining = 0; updateRingDisplay();
+  timerRemaining = 0; updateRing();
+  document.title = 'FocusFlow — by Omar Mohamed';
   if (!skipped) playBell();
+
   if (timerMode === 'focus') {
-    sessionsToday++;
-    const min = timerDurations.focus;
-    addLog({ type: 'focus', label: `Completed ${min}min focus session`, minutes: min, date: todayStr() });
-    addLog({ type: 'session', label: 'Pomodoro session completed', minutes: min, date: todayStr() });
+    sessCount++;
+    const min = DUR.focus;
+    const topic = document.getElementById('working-on')?.value.trim();
+    addLog({ type: 'focus',   label: `${min}min focus session${topic ? ' — ' + topic : ''}`, minutes: min, date: todayStr() });
+    addLog({ type: 'session', label: `Pomodoro completed${topic ? ': ' + topic : ''}`, minutes: min, date: todayStr() });
     updateTimerStats();
-    toast('Session complete! 🎉');
-    const next = sessionsToday % 4 === 0 ? 'long' : 'short';
-    const auto = document.getElementById('auto-on').checked;
-    setTimeout(() => { setTimerMode(next); if (auto) startTimer(); }, 1000);
+    renderSessDots();
+    toast('Session complete! Great work 🎉');
+    const next = sessCount % 4 === 0 ? 'long' : 'short';
+    setTimeout(() => { setMode(next); if (document.getElementById('auto')?.checked) startTimer(); }, 1200);
   } else {
-    toast('Break over — back to focus!');
-    const auto = document.getElementById('auto-on').checked;
-    setTimeout(() => { setTimerMode('focus'); if (auto) startTimer(); }, 1000);
+    toast('Break over — back to focus! 💪');
+    setTimeout(() => { setMode('focus'); if (document.getElementById('auto')?.checked) startTimer(); }, 1200);
   }
-  renderDots();
 }
 
 function updateTimerStats() {
-  document.getElementById('ts-sessions').textContent = sessionsToday;
-  document.getElementById('ts-focus').textContent = getTodayFocusMin() + 'm';
-  document.getElementById('ts-streak').textContent = calcFocusStreak();
+  document.getElementById('ts-sess').textContent   = sessCount;
+  document.getElementById('ts-focus').textContent  = todayFocusMin() + 'm';
+  document.getElementById('ts-streak').textContent = focusStreak();
 }
 
-function renderDots() {
-  const wrap = document.getElementById('session-dots');
+function renderSessDots() {
+  const wrap = document.getElementById('sess-dots');
   if (!wrap) return;
   wrap.innerHTML = '';
   for (let i = 0; i < 4; i++) {
     const d = document.createElement('div');
-    const pos = sessionsToday % 4;
-    d.className = 'dot' + (i < pos ? ' done' : (i === pos && timerMode === 'focus' && timerRunning ? ' active' : ''));
+    const pos = sessCount % 4;
+    d.className = 'sdot' + (i < pos ? ' done' : (i === pos && timerRunning ? ' cur' : ''));
     wrap.appendChild(d);
   }
 }
 
 function adjDur(key, delta) {
-  timerDurations[key] = Math.max(1, timerDurations[key] + delta);
-  document.getElementById('dur-' + key).textContent = timerDurations[key] + 'm';
-  if (timerMode === key) { timerTotal = timerDurations[key] * 60; if (!timerRunning) { timerRemaining = timerTotal; updateRingDisplay(); } }
+  DUR[key] = Math.max(1, Math.min(120, DUR[key] + delta));
+  document.getElementById('d-' + key).textContent = DUR[key] + 'm';
+  if (timerMode === key && !timerRunning) { timerTotal = DUR[key] * 60; timerRemaining = timerTotal; updateRing(); }
 }
 
-/* ── Tasks ── */
-function getTasks() { return DB.get(userKey(currentUser, 'tasks'), []); }
-function saveTasks(t) { DB.set(userKey(currentUser, 'tasks'), t); }
+/* ── TASKS ── */
+function getTasks() { return DB.get(UK('tasks'), []); }
+function setTasks(t) { DB.set(UK('tasks'), t); }
 
 function addTask() {
-  const inp = document.getElementById('task-input');
+  unlockAudio();
+  const inp = document.getElementById('task-inp');
   const val = inp.value.trim();
   if (!val) return;
   const tasks = getTasks();
   tasks.push({ id: Date.now(), text: val, done: false, date: todayStr() });
-  saveTasks(tasks);
-  inp.value = '';
-  renderTasks();
+  setTasks(tasks);
+  inp.value = ''; renderTasks();
 }
 
 function toggleTask(id) {
   const tasks = getTasks();
   const t = tasks.find(t => t.id === id);
-  if (t) { t.done = !t.done; saveTasks(tasks); renderTasks(); }
+  if (t) { t.done = !t.done; setTasks(tasks); renderTasks(); }
 }
 
-function deleteTask(id) {
-  const tasks = getTasks().filter(t => t.id !== id);
-  saveTasks(tasks);
-  renderTasks();
-}
+function deleteTask(id) { setTasks(getTasks().filter(t => t.id !== id)); renderTasks(); }
 
 function renderTasks() {
-  const list = document.getElementById('task-list');
-  if (!list) return;
+  const el = document.getElementById('task-list');
+  if (!el) return;
   const tasks = getTasks().filter(t => t.date === todayStr());
-  list.innerHTML = tasks.length ? tasks.map(t => `
+  el.innerHTML = tasks.length ? tasks.map(t => `
     <div class="task-item">
-      <div class="task-check ${t.done ? 'done' : ''}" onclick="toggleTask(${t.id})">${t.done ? '<i class="ti ti-check"></i>' : ''}</div>
-      <span class="task-text ${t.done ? 'done' : ''}">${escHtml(t.text)}</span>
+      <div class="task-cb ${t.done ? 'done' : ''}" onclick="toggleTask(${t.id})">${t.done ? '<i class="ti ti-check"></i>' : ''}</div>
+      <span class="task-txt ${t.done ? 'done' : ''}">${escHtml(t.text)}</span>
       <span class="task-del" onclick="deleteTask(${t.id})"><i class="ti ti-x"></i></span>
-    </div>`).join('') : '<p style="font-size:13px;color:var(--text3);padding:10px 0">No tasks yet — add one above!</p>';
+    </div>`).join('')
+    : '<div class="empty-state" style="padding:1rem 0"><i class="ti ti-checkbox" style="font-size:24px;margin-bottom:4px"></i>No tasks yet</div>';
 }
 
-function escHtml(s) { return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+/* ── SLEEP ── */
+let sleepStar = 3;
 
-/* ── Sleep ── */
-let sleepStarVal = 0;
-let sleepPageChart = null;
+function getSleepLogs() { return DB.get(UK('sleep'), []); }
+function setSleepLogs(l) { DB.set(UK('sleep'), l); }
 
-function setupSleepDate() {
-  const el = document.getElementById('sleep-date');
-  if (el) el.value = todayStr();
+function setupSleepDefaults() {
+  const el = document.getElementById('sl-date');
+  if (el && !el.value) el.value = todayStr();
 }
 
-function setSleepStar(v) {
-  sleepStarVal = v;
-  document.querySelectorAll('#sleep-stars i').forEach((s, i) => s.classList.toggle('lit', i < v));
+function setStar(v) {
+  sleepStar = v;
+  document.querySelectorAll('#sl-stars i').forEach((s, i) => s.classList.toggle('lit', i < v));
 }
 
-function getSleepLogs() { return DB.get(userKey(currentUser, 'sleep'), []); }
-function saveSleepLogs(l) { DB.set(userKey(currentUser, 'sleep'), l); }
-
-function calcSleepHours(bed, wake) {
+function sleepHours(bed, wake) {
   const [bh, bm] = bed.split(':').map(Number);
   const [wh, wm] = wake.split(':').map(Number);
-  let mins = (wh * 60 + wm) - (bh * 60 + bm);
-  if (mins < 0) mins += 1440;
-  return +(mins / 60).toFixed(2);
+  let m = (wh * 60 + wm) - (bh * 60 + bm);
+  if (m < 0) m += 1440;
+  return +(m / 60).toFixed(2);
 }
 
 function logSleep() {
-  const bed = document.getElementById('sleep-bed').value;
-  const wake = document.getElementById('sleep-wake').value;
-  const date = document.getElementById('sleep-date').value;
-  if (!bed || !wake || !date) { toast('Fill in all fields!'); return; }
-  const hours = calcSleepHours(bed, wake);
+  unlockAudio();
+  const bed  = document.getElementById('sl-bed').value;
+  const wake = document.getElementById('sl-wake').value;
+  const date = document.getElementById('sl-date').value;
+  const note = document.getElementById('sl-note').value.trim();
+  if (!bed || !wake || !date) { toast('Please fill bedtime, wake-up and date'); return; }
+  const hours = sleepHours(bed, wake);
   const logs = getSleepLogs();
-  const existing = logs.findIndex(l => l.date === date);
-  const entry = { id: Date.now(), date, bed, wake, hours, quality: sleepStarVal || 3 };
-  if (existing > -1) logs[existing] = entry; else logs.unshift(entry);
-  saveSleepLogs(logs);
-  addLog({ type: 'sleep', label: `Slept ${hours.toFixed(1)}h (${bed} → ${wake})`, date });
-  toast('Sleep logged!');
-  setSleepStar(0);
+  const idx  = logs.findIndex(l => l.date === date);
+  const entry = { id: Date.now(), date, bed, wake, hours, quality: sleepStar, note };
+  if (idx > -1) logs[idx] = entry; else logs.unshift(entry);
+  setSleepLogs(logs.sort((a, b) => b.date.localeCompare(a.date)));
+  addLog({ type: 'sleep', label: `Slept ${hours.toFixed(1)}h · ${bed} → ${wake} · ${'★'.repeat(sleepStar)}`, date });
+  toast(`Sleep logged: ${hours.toFixed(1)} hours 🌙`);
   loadSleepPage();
 }
 
 function loadSleepPage() {
   const logs = getSleepLogs();
-  if (!logs.length) {
-    document.getElementById('avg-sleep').textContent = '—';
-    document.getElementById('best-sleep').textContent = '—';
-    document.getElementById('avg-quality').textContent = '—';
-    document.getElementById('sleep-streak').textContent = '0';
-  } else {
+  if (logs.length) {
     const avg = logs.reduce((s, l) => s + l.hours, 0) / logs.length;
-    document.getElementById('avg-sleep').textContent = avg.toFixed(1) + 'h';
-    document.getElementById('best-sleep').textContent = Math.max(...logs.map(l => l.hours)).toFixed(1) + 'h';
+    const best = Math.max(...logs.map(l => l.hours));
     const avgQ = logs.reduce((s, l) => s + (l.quality || 3), 0) / logs.length;
-    document.getElementById('avg-quality').textContent = avgQ.toFixed(1) + '★';
-    document.getElementById('sleep-streak').textContent = logs.length;
+    document.getElementById('ss-avg').textContent  = avg.toFixed(1)  + 'h';
+    document.getElementById('ss-best').textContent = best.toFixed(1) + 'h';
+    document.getElementById('ss-qual').textContent = avgQ.toFixed(1) + '★';
+    document.getElementById('ss-days').textContent = logs.length;
+  } else {
+    ['ss-avg','ss-best','ss-qual'].forEach(id => document.getElementById(id).textContent = '—');
+    document.getElementById('ss-days').textContent = '0';
   }
+  renderSleepChart();
   renderSleepHistory();
-  renderSleepPageChart();
+}
+
+function renderSleepChart() {
+  const days  = last7Days();
+  const logs  = getSleepLogs();
+  const data  = days.map(d => { const s = logs.find(l => l.date === d); return s ? +s.hours.toFixed(1) : 0; });
+  const labels = days.map(d => new Date(d + 'T00:00:00').toLocaleDateString('en-GB', { weekday:'short' }));
+  if (dashCharts['c-sleep']) dashCharts['c-sleep'].destroy();
+  const ctx = document.getElementById('c-sleep');
+  if (!ctx) return;
+  dashCharts['c-sleep'] = new Chart(ctx.getContext('2d'), {
+    type: 'line',
+    data: { labels, datasets: [{ data, borderColor:'#3a85e0', backgroundColor:'rgba(58,133,224,0.1)', tension:0.4, fill:true, pointBackgroundColor:'#3a85e0', pointRadius:4 }] },
+    options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}, tooltip:{callbacks:{label:c=>c.raw+'h'}}}, scales:{ x:{grid:{display:false},ticks:{color:'#5c5a65',font:{size:11}}}, y:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#5c5a65',font:{size:11}}} } }
+  });
 }
 
 function renderSleepHistory() {
+  const el = document.getElementById('sleep-hist');
+  if (!el) return;
   const logs = getSleepLogs();
-  const el = document.getElementById('sleep-history');
-  if (!logs.length) { el.innerHTML = '<p style="font-size:13px;color:var(--text3);padding:12px 0">No sleep logged yet.</p>'; return; }
-  el.innerHTML = logs.slice(0, 20).map(l => `
+  if (!logs.length) { el.innerHTML = '<div class="empty-state"><i class="ti ti-moon"></i>No sleep logged yet</div>'; return; }
+  el.innerHTML = logs.slice(0, 30).map(l => `
     <div class="log-item">
       <div class="log-dot sleep"></div>
-      <span class="log-text">${l.date} — ${l.bed} → ${l.wake} (${l.hours.toFixed(1)}h) ${'★'.repeat(l.quality || 3)}</span>
+      <span class="log-text">${l.date} · ${l.bed} → ${l.wake} · ${l.hours.toFixed(1)}h · ${'★'.repeat(l.quality||3)}${l.note ? ' · ' + escHtml(l.note) : ''}</span>
       <span class="task-del" onclick="deleteSleepLog(${l.id})"><i class="ti ti-x"></i></span>
     </div>`).join('');
 }
 
 function deleteSleepLog(id) {
-  saveSleepLogs(getSleepLogs().filter(l => l.id !== id));
+  setSleepLogs(getSleepLogs().filter(l => l.id !== id));
   loadSleepPage();
+  toast('Sleep log removed');
 }
 
-function renderSleepPageChart() {
-  const days = getLast7Days();
-  const logs = getSleepLogs();
-  const data = days.map(d => { const s = logs.find(l => l.date === d); return s ? +s.hours.toFixed(1) : 0; });
-  const labels = days.map(d => new Date(d).toLocaleDateString('en-GB', { weekday: 'short' }));
-  if (sleepPageChart) sleepPageChart.destroy();
-  const ctx = document.getElementById('chart-sleep-page');
-  if (!ctx) return;
-  sleepPageChart = new Chart(ctx.getContext('2d'), {
-    type: 'line',
-    data: { labels, datasets: [{ data, borderColor: '#185FA5', backgroundColor: 'rgba(24,95,165,0.1)', tension: 0.4, fill: true, pointBackgroundColor: '#185FA5' }] },
-    options: { ...chartOpts('h'), plugins: { legend: { display: false } } }
-  });
-}
+/* ── HABITS ── */
+function getHabits()  { return DB.get(UK('habits'), []); }
+function setHabits(h) { DB.set(UK('habits'), h); }
+function getHabitLog()  { return DB.get(UK('habit_log'), {}); }
+function setHabitLog(l) { DB.set(UK('habit_log'), l); }
 
-/* ── Habits ── */
-function getHabits() { return DB.get(userKey(currentUser, 'habits'), []); }
-function saveHabits(h) { DB.set(userKey(currentUser, 'habits'), h); }
-function getHabitLog() { return DB.get(userKey(currentUser, 'habit_log'), {}); }
-function saveHabitLog(l) { DB.set(userKey(currentUser, 'habit_log'), l); }
-
-function openHabitModal() { document.getElementById('habit-modal').style.display = 'flex'; }
-function closeHabitModal() { document.getElementById('habit-modal').style.display = 'none'; }
+function openHModal()  { document.getElementById('h-modal').style.display = 'flex'; }
+function closeHModal() { document.getElementById('h-modal').style.display = 'none'; }
 
 function saveHabit() {
-  const name = document.getElementById('habit-name-input').value.trim();
-  const cat = document.getElementById('habit-cat').value;
-  const emoji = document.getElementById('habit-emoji').value.trim() || '✅';
-  if (!name) { toast('Enter a habit name!'); return; }
+  const name  = document.getElementById('h-name').value.trim();
+  const emoji = document.getElementById('h-emoji').value.trim() || '✅';
+  const cat   = document.getElementById('h-cat').value;
+  if (!name) { toast('Enter a habit name'); return; }
   const habits = getHabits();
-  habits.push({ id: Date.now(), name, cat, emoji, created: todayStr() });
-  saveHabits(habits);
-  document.getElementById('habit-name-input').value = '';
-  document.getElementById('habit-emoji').value = '';
-  closeHabitModal();
-  loadHabits();
-  toast('Habit added!');
+  habits.push({ id: Date.now(), name, emoji, cat, created: todayStr() });
+  setHabits(habits);
+  document.getElementById('h-name').value  = '';
+  document.getElementById('h-emoji').value = '';
+  closeHModal(); loadHabits(); toast('Habit added! 💚');
 }
 
 function toggleHabit(id) {
+  unlockAudio();
   const log = getHabitLog();
   const key = id + '_' + todayStr();
   log[key] = !log[key];
-  saveHabitLog(log);
-  if (log[key]) addLog({ type: 'habit', label: 'Completed habit: ' + (getHabits().find(h => h.id === id)?.name || ''), date: todayStr() });
+  setHabitLog(log);
+  if (log[key]) {
+    const h = getHabits().find(h => h.id === id);
+    addLog({ type:'habit', label:`Completed habit: ${h ? h.emoji + ' ' + h.name : ''}`, date: todayStr() });
+    toast(`Habit done! ${h ? h.emoji : '✅'}`);
+  }
   loadHabits();
 }
 
 function deleteHabit(id) {
-  saveHabits(getHabits().filter(h => h.id !== id));
-  loadHabits();
+  setHabits(getHabits().filter(h => h.id !== id));
+  loadHabits(); toast('Habit removed');
 }
 
 function loadHabits() {
   const habits = getHabits();
-  const log = getHabitLog();
-  const today = todayStr();
-  const todayEl = document.getElementById('habits-today');
-  if (!todayEl) return;
+  const log    = getHabitLog();
+  const today  = todayStr();
+  const el = document.getElementById('habits-today');
+  if (!el) return;
+  const hd = document.getElementById('hd-today');
+  if (hd) hd.textContent = new Date().toLocaleDateString('en-GB', { weekday:'long', day:'numeric', month:'long' });
+
   if (!habits.length) {
-    todayEl.innerHTML = '<p style="font-size:13px;color:var(--text3);padding:12px 0">No habits yet — add one above!</p>';
+    el.innerHTML = '<div class="empty-state"><i class="ti ti-heart"></i>Add your first habit above!</div>';
   } else {
-    todayEl.innerHTML = habits.map(h => {
+    el.innerHTML = habits.map(h => {
       const done = !!log[h.id + '_' + today];
       return `<div class="habit-row">
         <span class="habit-emoji">${h.emoji}</span>
-        <span class="habit-name">${escHtml(h.name)}</span>
-        <button class="habit-check-btn ${done ? 'done' : ''}" onclick="toggleHabit(${h.id})">${done ? '<i class="ti ti-check"></i>' : ''}</button>
+        <div style="flex:1"><div class="habit-name">${escHtml(h.name)}</div><div class="habit-cat">${h.cat}</div></div>
+        <button class="habit-chk ${done ? 'done' : ''}" onclick="toggleHabit(${h.id})">${done ? '<i class="ti ti-check"></i>' : ''}</button>
         <button class="habit-del-btn" onclick="deleteHabit(${h.id})"><i class="ti ti-trash"></i></button>
       </div>`;
     }).join('');
   }
-  renderHabitWeek();
+  renderHabitWeek(habits, log);
 }
 
-function renderHabitDate() {
-  const el = document.getElementById('habit-date');
-  if (el) el.textContent = new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
-}
-
-function renderHabitWeek() {
-  const habits = getHabits();
-  const log = getHabitLog();
-  const days = getLast7Days();
-  const labels = days.map(d => new Date(d).toLocaleDateString('en-GB', { weekday: 'short' }));
+function renderHabitWeek(habits, log) {
+  const el   = document.getElementById('habits-week');
+  if (!el) return;
+  const days  = last7Days();
   const today = todayStr();
-  const grid = document.getElementById('habits-week-grid');
-  if (!grid) return;
-  if (!habits.length) { grid.innerHTML = ''; return; }
-  grid.innerHTML = habits.map(h => `
-    <div class="habit-week-item">
-      <div class="habit-week-name">${h.emoji} ${escHtml(h.name)}</div>
-      <div class="habit-week-dots">
-        ${days.map((d, i) => {
-          const done = !!log[h.id + '_' + d];
-          return `<div class="habit-week-dot ${done ? 'done' : ''} ${d === today ? 'today' : ''}">${labels[i]}</div>`;
-        }).join('')}
+  const labels = days.map(d => new Date(d + 'T00:00:00').toLocaleDateString('en-GB', { weekday:'short' }));
+  if (!habits.length) { el.innerHTML = ''; return; }
+  el.innerHTML = habits.map(h => `
+    <div class="habit-week-row">
+      <div class="hwn">${h.emoji} ${escHtml(h.name)}</div>
+      <div class="hw-dots">
+        ${days.map((d, i) => `<div class="hw-d ${log[h.id+'_'+d] ? 'done' : ''} ${d===today ? 'today' : ''}">${labels[i]}</div>`).join('')}
       </div>
     </div>`).join('');
 }
 
-/* ── Analytics ── */
-let anCharts = {};
+/* ── WATER ── */
+function getWaterLogs()  { return DB.get(UK('water'), {}); }
+function setWaterLogs(l) { DB.set(UK('water'), l); }
+function getWaterGoal()  { return DB.get(UK('water_goal'), 8); }
+function setWaterGoal(g) { DB.set(UK('water_goal'), g); }
 
-function renderAnalytics() {
-  const logs = getLogs();
-  const slogs = getSleepLogs();
-  const focusMins = logs.filter(l => l.type === 'focus').reduce((s, l) => s + (l.minutes || 0), 0);
-  document.getElementById('an-total-focus').textContent = Math.round(focusMins / 60 * 10) / 10 + 'h';
-  const avgSleep = slogs.length ? slogs.reduce((s, l) => s + l.hours, 0) / slogs.length : 0;
-  document.getElementById('an-avg-sleep').textContent = avgSleep ? avgSleep.toFixed(1) + 'h' : '—';
-  const uniqueDays = [...new Set(logs.map(l => l.date))];
-  document.getElementById('an-days').textContent = uniqueDays.length;
+function addWater()    { unlockAudio(); adjWater(1); }
+function removeWater() { adjWater(-1); }
 
-  const dayFocus = {};
-  logs.filter(l => l.type === 'focus').forEach(l => { dayFocus[l.date] = (dayFocus[l.date] || 0) + (l.minutes || 0); });
-  const bestDay = Object.entries(dayFocus).sort((a, b) => b[1] - a[1])[0];
-  document.getElementById('an-best-day').textContent = bestDay ? new Date(bestDay[0]).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : '—';
-
-  render14DayFocusChart(logs);
-  renderPieChart(logs, slogs);
-  renderScatterChart(logs, slogs);
-  renderFullLog(logs);
+function adjWater(delta) {
+  const logs  = getWaterLogs();
+  const today = todayStr();
+  logs[today] = Math.max(0, Math.min(20, (logs[today] || 0) + delta));
+  setWaterLogs(logs);
+  if (delta > 0) addLog({ type:'water', label:`Drank a glass of water 💧 (${logs[today]} today)`, date: today });
+  loadWaterPage();
 }
 
-function render14DayFocusChart(logs) {
-  const days = Array.from({ length: 14 }, (_, i) => { const d = new Date(); d.setDate(d.getDate() - (13 - i)); return d.toISOString().slice(0, 10); });
-  const data = days.map(d => logs.filter(l => l.type === 'focus' && l.date === d).reduce((s, l) => s + (l.minutes || 0), 0));
-  const labels = days.map(d => new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }));
-  if (anCharts.focus14) anCharts.focus14.destroy();
-  const ctx = document.getElementById('chart-focus-14').getContext('2d');
-  anCharts.focus14 = new Chart(ctx, { type: 'bar', data: { labels, datasets: [{ data, backgroundColor: days.map((d, i) => i === 13 ? '#534AB7' : '#AFA9EC'), borderRadius: 6 }] }, options: chartOpts('min') });
+function adjWGoal(delta) {
+  const g = Math.max(1, Math.min(20, getWaterGoal() + delta));
+  setWaterGoal(g);
+  document.getElementById('w-goal-num').textContent = g;
+  document.getElementById('w-goal-lbl').textContent = g + ' glasses';
+  loadWaterPage();
 }
 
-function renderPieChart(logs, slogs) {
-  const focusH = logs.filter(l => l.type === 'focus').reduce((s, l) => s + (l.minutes || 0), 0) / 60;
-  const sleepH = slogs.reduce((s, l) => s + l.hours, 0);
-  const days = Math.max(1, [...new Set(logs.map(l => l.date))].length);
-  const avgFocus = +(focusH / days).toFixed(1);
-  const avgSleep = +(sleepH / Math.max(1, slogs.length)).toFixed(1);
-  const other = Math.max(0, +(24 - avgFocus - avgSleep).toFixed(1));
-  if (anCharts.pie) anCharts.pie.destroy();
-  const ctx = document.getElementById('chart-pie').getContext('2d');
-  anCharts.pie = new Chart(ctx, {
-    type: 'doughnut',
-    data: {
-      labels: ['Focus', 'Sleep', 'Other'],
-      datasets: [{ data: [avgFocus, avgSleep, other], backgroundColor: ['#534AB7', '#185FA5', '#D3D1C7'], borderWidth: 0 }]
-    },
-    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { font: { size: 12 } } } } }
+function loadWaterPage() {
+  const logs  = getWaterLogs();
+  const today = todayStr();
+  const goal  = getWaterGoal();
+  const count = logs[today] || 0;
+  document.getElementById('w-count').textContent    = count;
+  document.getElementById('w-goal-num').textContent = goal;
+  document.getElementById('w-goal-lbl').textContent = goal + ' glasses';
+  // Ring
+  const circ = 2 * Math.PI * 85;
+  const fg   = document.getElementById('wr-fg');
+  if (fg) {
+    fg.style.strokeDasharray  = circ;
+    fg.style.strokeDashoffset = circ * (1 - Math.min(count / goal, 1));
+  }
+  // Cups
+  const cupsEl = document.getElementById('w-cups');
+  if (cupsEl) {
+    cupsEl.innerHTML = Array.from({ length: goal }, (_, i) =>
+      `<div class="water-cup ${i < count ? 'filled' : ''}">💧</div>`
+    ).join('');
+  }
+  // Stats
+  const vals = Object.values(logs).filter(v => v > 0);
+  document.getElementById('wst-avg').textContent    = vals.length ? (vals.reduce((a,b)=>a+b,0)/vals.length).toFixed(1) : '0';
+  document.getElementById('wst-best').textContent   = vals.length ? Math.max(...vals) : '0';
+  const streak = calcWaterStreak(logs, goal);
+  document.getElementById('wst-streak').textContent = streak;
+  renderWaterChart(logs, goal);
+}
+
+function calcWaterStreak(logs, goal) {
+  let s = 0; const d = new Date();
+  while (true) {
+    const str = d.toISOString().slice(0, 10);
+    if ((logs[str] || 0) >= goal) { s++; d.setDate(d.getDate() - 1); }
+    else break;
+  }
+  return s;
+}
+
+function renderWaterChart(logs, goal) {
+  const days   = last7Days();
+  const data   = days.map(d => logs[d] || 0);
+  const labels = days.map(d => new Date(d + 'T00:00:00').toLocaleDateString('en-GB', { weekday:'short' }));
+  if (dashCharts['c-water']) dashCharts['c-water'].destroy();
+  const ctx = document.getElementById('c-water');
+  if (!ctx) return;
+  dashCharts['c-water'] = new Chart(ctx.getContext('2d'), {
+    type: 'bar',
+    data: { labels, datasets: [
+      { data, backgroundColor: data.map(v => v >= goal ? '#15b5c8aa' : '#15b5c844'), borderColor: '#15b5c8', borderWidth: 1.5, borderRadius: 6 },
+      { data: Array(7).fill(goal), type:'line', borderColor:'rgba(21,181,200,0.4)', borderDash:[4,4], pointRadius:0, fill:false }
+    ]},
+    options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{ x:{grid:{display:false},ticks:{color:'#5c5a65',font:{size:11}}}, y:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#5c5a65',font:{size:11}}} } }
   });
 }
 
-function renderScatterChart(logs, slogs) {
-  const focusByDay = {};
-  logs.filter(l => l.type === 'focus').forEach(l => { focusByDay[l.date] = (focusByDay[l.date] || 0) + (l.minutes || 0); });
-  const points = slogs.map(s => ({ x: +s.hours.toFixed(1), y: +(focusByDay[s.date] || 0) })).filter(p => p.y > 0);
-  if (anCharts.scatter) anCharts.scatter.destroy();
-  const ctx = document.getElementById('chart-scatter').getContext('2d');
-  anCharts.scatter = new Chart(ctx, {
-    type: 'scatter',
-    data: { datasets: [{ label: 'Sleep vs Focus', data: points, backgroundColor: '#534AB7', pointRadius: 6 }] },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => `Sleep: ${c.raw.x}h, Focus: ${c.raw.y}min` } } },
-      scales: { x: { title: { display: true, text: 'Sleep (h)', font: { size: 11 } } }, y: { title: { display: true, text: 'Focus (min)', font: { size: 11 } } } }
+/* ── NOTES ── */
+let currentNoteId = null;
+
+function getNotes()  { return DB.get(UK('notes'), []); }
+function setNotes(n) { DB.set(UK('notes'), n); }
+
+function loadNotesPage() {
+  renderNotesList();
+  const notes = getNotes();
+  if (notes.length) openNoteEditor(notes[0].id);
+  else clearNoteEditor();
+}
+
+function renderNotesList() {
+  const notes = getNotes();
+  const el    = document.getElementById('notes-list');
+  if (!el) return;
+  if (!notes.length) {
+    el.innerHTML = '<div class="notes-empty"><i class="ti ti-notes"></i>No notes yet.<br/>Click "New note" to start</div>';
+    return;
+  }
+  el.innerHTML = notes.map(n => `
+    <div class="note-item ${n.id === currentNoteId ? 'active' : ''}" onclick="openNoteEditor(${n.id})">
+      <div class="ni-title">${escHtml(n.title || 'Untitled')}</div>
+      <div class="ni-preview">${escHtml((n.body || '').slice(0, 80))}</div>
+      <div class="ni-date">${new Date(n.ts).toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' })}${n.tags ? ' · ' + escHtml(n.tags) : ''}</div>
+    </div>`).join('');
+}
+
+function newNote() {
+  const note = { id: Date.now(), title: '', body: '', tags: '', ts: new Date().toISOString() };
+  const notes = getNotes();
+  notes.unshift(note);
+  setNotes(notes);
+  currentNoteId = note.id;
+  renderNotesList();
+  openNoteEditor(note.id);
+  document.getElementById('note-title').focus();
+}
+
+function openNoteEditor(id) {
+  const notes = getNotes();
+  const note  = notes.find(n => n.id === id);
+  if (!note) return;
+  currentNoteId = id;
+  document.getElementById('note-title').value = note.title || '';
+  document.getElementById('note-body').value  = note.body  || '';
+  document.getElementById('note-tags').value  = note.tags  || '';
+  renderNotesList();
+}
+
+function saveNote() {
+  const notes = getNotes();
+  const idx   = notes.findIndex(n => n.id === currentNoteId);
+  if (idx === -1) return;
+  notes[idx].title = document.getElementById('note-title').value.trim() || 'Untitled';
+  notes[idx].body  = document.getElementById('note-body').value;
+  notes[idx].tags  = document.getElementById('note-tags').value.trim();
+  notes[idx].ts    = new Date().toISOString();
+  setNotes(notes);
+  renderNotesList();
+  addLog({ type:'note', label:`Saved note: "${notes[idx].title}"`, date: todayStr() });
+  toast('Note saved! 📝');
+}
+
+function deleteNote() {
+  if (!currentNoteId) return;
+  setNotes(getNotes().filter(n => n.id !== currentNoteId));
+  currentNoteId = null;
+  clearNoteEditor();
+  loadNotesPage();
+  toast('Note deleted');
+}
+
+function clearNoteEditor() {
+  ['note-title','note-body','note-tags'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+}
+
+/* ── ANALYTICS ── */
+let anCharts = {};
+
+function renderAnalytics() {
+  const logs  = getLogs();
+  const slogs = getSleepLogs();
+  const fm    = focusMinTotal(logs);
+  document.getElementById('an-focus').textContent = (fm / 60).toFixed(1) + 'h';
+  const avgSl = slogs.length ? slogs.reduce((s, l) => s + l.hours, 0) / slogs.length : 0;
+  document.getElementById('an-sleep').textContent = avgSl ? avgSl.toFixed(1) + 'h' : '—';
+  const days  = [...new Set(logs.map(l => l.date))];
+  document.getElementById('an-days').textContent = days.length;
+  const byDay = {};
+  logs.filter(l => l.type === 'focus').forEach(l => { byDay[l.date] = (byDay[l.date] || 0) + (l.minutes || 0); });
+  const best  = Object.entries(byDay).sort((a,b) => b[1]-a[1])[0];
+  document.getElementById('an-best').textContent = best ? new Date(best[0]+'T00:00:00').toLocaleDateString('en-GB', {day:'numeric',month:'short'}) : '—';
+  render14Chart(logs);
+  renderPie(logs, slogs);
+  renderScatter(logs, slogs);
+  renderLogList('an-log', logs, 50);
+}
+
+function render14Chart(logs) {
+  const days  = Array.from({length:14}, (_,i) => { const d=new Date(); d.setDate(d.getDate()-(13-i)); return d.toISOString().slice(0,10); });
+  const data  = days.map(d => logs.filter(l => l.type==='focus' && l.date===d).reduce((s,l)=>s+(l.minutes||0),0));
+  const labels = days.map(d => new Date(d+'T00:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short'}));
+  if (anCharts.f14) anCharts.f14.destroy();
+  const ctx = document.getElementById('c-an-focus');
+  if (!ctx) return;
+  anCharts.f14 = new Chart(ctx.getContext('2d'), {
+    type:'bar',
+    data:{ labels, datasets:[{ data, backgroundColor: days.map((_,i)=> i===13 ? '#7c6fcd' : '#7c6fcd44'), borderRadius:6, borderSkipped:false }] },
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.raw+'min'}}}, scales:{ x:{grid:{display:false},ticks:{color:'#5c5a65',font:{size:10}}}, y:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#5c5a65',font:{size:11}}} } }
+  });
+}
+
+function renderPie(logs, slogs) {
+  const daysN = Math.max(1, [...new Set(logs.map(l=>l.date))].length);
+  const fh = +(focusMinTotal(logs) / daysN / 60).toFixed(1);
+  const sh = +(slogs.reduce((s,l)=>s+l.hours,0) / Math.max(1,slogs.length)).toFixed(1);
+  const ot = Math.max(0, +(24 - fh - sh).toFixed(1));
+  if (anCharts.pie) anCharts.pie.destroy();
+  const ctx = document.getElementById('c-pie');
+  if (!ctx) return;
+  anCharts.pie = new Chart(ctx.getContext('2d'), {
+    type:'doughnut',
+    data:{ labels:['Focus','Sleep','Other'], datasets:[{ data:[fh,sh,ot], backgroundColor:['#7c6fcd','#3a85e0','#27272f'], borderWidth:0, spacing:2 }] },
+    options:{ responsive:true, maintainAspectRatio:false, cutout:'65%', plugins:{ legend:{ position:'bottom', labels:{ color:'#9896a0', font:{size:12}, padding:16 } } } }
+  });
+}
+
+function renderScatter(logs, slogs) {
+  const fd = {};
+  logs.filter(l=>l.type==='focus').forEach(l => { fd[l.date]=(fd[l.date]||0)+(l.minutes||0); });
+  const pts = slogs.map(s => ({ x:+s.hours.toFixed(1), y: fd[s.date]||0 })).filter(p=>p.y>0);
+  if (anCharts.sc) anCharts.sc.destroy();
+  const ctx = document.getElementById('c-scatter');
+  if (!ctx) return;
+  anCharts.sc = new Chart(ctx.getContext('2d'), {
+    type:'scatter',
+    data:{ datasets:[{ data:pts, backgroundColor:'#7c6fcd', pointRadius:6, pointHoverRadius:8 }] },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{display:false}, tooltip:{callbacks:{label:c=>`Sleep: ${c.raw.x}h · Focus: ${c.raw.y}min`}} },
+      scales:{
+        x:{ title:{display:true,text:'Sleep (hours)',color:'#5c5a65',font:{size:11}}, grid:{color:'rgba(255,255,255,0.04)'}, ticks:{color:'#5c5a65',font:{size:11}} },
+        y:{ title:{display:true,text:'Focus (min)',color:'#5c5a65',font:{size:11}},   grid:{color:'rgba(255,255,255,0.04)'}, ticks:{color:'#5c5a65',font:{size:11}} }
+      }
     }
   });
 }
 
-function renderFullLog(logs) {
-  const el = document.getElementById('full-log');
-  if (!logs.length) { el.innerHTML = '<p style="font-size:13px;color:var(--text3);padding:12px 0">No activity yet.</p>'; return; }
-  el.innerHTML = logs.slice(0, 50).map(l => `
-    <div class="log-item">
-      <div class="log-dot ${l.type}"></div>
-      <span class="log-text">${l.label}</span>
-      <span class="log-time">${fmtLogTime(l.ts)}</span>
-    </div>`).join('');
+/* ── UTILITIES ── */
+function escHtml(s) {
+  if (!s) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
-/* ── Toast ── */
+let toastTimer;
 function toast(msg) {
   const el = document.getElementById('toast');
   el.textContent = msg;
   el.classList.add('show');
-  clearTimeout(toast._t);
-  toast._t = setTimeout(() => el.classList.remove('show'), 3000);
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 3000);
 }
 
-/* ── Boot ── */
+/* ── BOOT ── */
 window.addEventListener('DOMContentLoaded', () => {
   const uid = DB.get('ff_session');
   if (uid && getUsers()[uid]) {
@@ -767,11 +1048,20 @@ window.addEventListener('DOMContentLoaded', () => {
     document.getElementById('app-screen').style.display = 'grid';
     initApp();
   }
+  // Auto-save note on body changes
+  document.getElementById('note-body')?.addEventListener('input', debounce(() => {
+    if (currentNoteId) saveNote();
+  }, 1500));
 });
 
-/* Close sidebar on outside click */
+function debounce(fn, ms) {
+  let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); };
+}
+
+// Close sidebar on outside click (mobile)
 document.addEventListener('click', e => {
-  const sb = document.getElementById('sidebar');
-  const btn = document.querySelector('.menu-btn');
-  if (sb.classList.contains('open') && !sb.contains(e.target) && e.target !== btn) closeSidebar();
+  const sb  = document.getElementById('sidebar');
+  const btn = document.querySelector('.topbar-menu');
+  const ov  = document.getElementById('sb-overlay');
+  if (ov?.classList.contains('open') && !sb?.contains(e.target) && e.target !== btn) closeSidebar();
 });
