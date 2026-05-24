@@ -1,0 +1,17 @@
+{
+  "name": "FocusFlow — by Omar Mohamed",
+  "short_name": "FocusFlow",
+  "description": "Pomodoro timer, sleep tracker, habits, water, and study notes",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f0f13",
+  "theme_color": "#7c6fcd",
+  "orientation": "portrait-primary",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ],
+  "categories": ["education", "productivity", "lifestyle"],
+  "screenshots": [],
+  "author": "Omar Mohamed"
+}
