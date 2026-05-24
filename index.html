@@ -1,1347 +1,391 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>PhysicsLab Pro — Omar Mohamed Ismail</title>
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Outfit:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-<style>
-*{margin:0;padding:0;box-sizing:border-box}
-:root{
-  --bg:#08041a;--bg2:#0e0726;--bg3:#130a30;--card:#180f3a;--card2:#1f1448;
-  --border:rgba(139,92,246,.15);--border2:rgba(139,92,246,.3);
-  --p:#8b5cf6;--pl:#a78bfa;--pb:#c4b5fd;--pglow:rgba(139,92,246,.22);
-  --pink:#e879f9;--cyan:#67e8f9;--gold:#fbbf24;--green:#34d399;--red:#f87171;
-  --white:#f0ebff;--muted:rgba(196,181,253,.5);--muted2:rgba(196,181,253,.3);
-  --fd:'Syne',sans-serif;--fb:'Outfit',sans-serif;--fm:'JetBrains Mono',monospace;
-  --r:14px;--shadow:0 8px 40px rgba(0,0,0,.5);
-}
-html{scroll-behavior:smooth}
-body{font-family:var(--fb);background:var(--bg);color:var(--white);overflow-x:hidden;cursor:none}
-
-/* CURSOR */
-#cur{position:fixed;width:8px;height:8px;background:var(--p);border-radius:50%;pointer-events:none;z-index:9999;transform:translate(-50%,-50%);transition:transform .15s}
-#cur-r{position:fixed;width:32px;height:32px;border:1.5px solid var(--pl);border-radius:50%;pointer-events:none;z-index:9998;transform:translate(-50%,-50%);opacity:.55;transition:width .3s,height .3s,opacity .3s}
-
-/* AMBIENT */
-.amb{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden}
-.orb{position:absolute;border-radius:50%;filter:blur(90px);opacity:.15}
-.o1{width:700px;height:700px;background:var(--p);top:-250px;right:-200px;animation:d1 20s ease-in-out infinite}
-.o2{width:500px;height:500px;background:#3b1fa8;bottom:-200px;left:-150px;animation:d2 25s ease-in-out infinite}
-.o3{width:300px;height:300px;background:var(--pink);top:45%;left:45%;animation:d3 17s ease-in-out infinite;opacity:.07}
-@keyframes d1{0%,100%{transform:translate(0,0)}50%{transform:translate(-80px,100px)}}
-@keyframes d2{0%,100%{transform:translate(0,0)}50%{transform:translate(100px,-80px)}}
-@keyframes d3{0%,100%{transform:translate(-50%,-50%)}50%{transform:translate(-50%,-65%)}}
-.grain{position:fixed;inset:0;pointer-events:none;z-index:1;opacity:.035;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
-
-/* NAV */
-nav{position:fixed;top:0;left:0;right:0;z-index:200;height:64px;padding:0 2.5rem;display:flex;align-items:center;justify-content:space-between;background:rgba(8,4,26,.8);backdrop-filter:blur(24px);border-bottom:1px solid var(--border)}
-.logo{font-family:var(--fd);font-weight:800;font-size:1.05rem;color:var(--white);display:flex;align-items:center;gap:10px;text-decoration:none}
-.logo-ico{width:30px;height:30px;border-radius:8px;background:linear-gradient(135deg,var(--p),var(--pink));display:flex;align-items:center;justify-content:center;font-size:.9rem}
-.nav-r{display:flex;align-items:center;gap:.5rem}
-.nav-tab{background:none;border:none;color:var(--muted);font-size:.82rem;font-weight:500;padding:7px 14px;border-radius:8px;cursor:pointer;font-family:var(--fb);transition:all .2s;text-decoration:none;display:inline-block}
-.nav-tab:hover,.nav-tab.active{color:var(--white);background:rgba(139,92,246,.12)}
-.nav-search{display:flex;align-items:center;gap:6px;background:rgba(139,92,246,.08);border:1px solid var(--border2);color:var(--muted);padding:6px 14px;border-radius:8px;font-size:.8rem;cursor:pointer;font-family:var(--fb);transition:all .2s}
-.nav-search:hover{background:rgba(139,92,246,.16);color:var(--white)}
-.nav-gh{background:linear-gradient(135deg,var(--p),#5b21b6);color:var(--white)!important;padding:7px 18px!important;border-radius:20px!important;font-weight:600!important;font-size:.82rem}
-
-/* PROGRESS BAR */
-#prog{position:fixed;top:64px;left:0;right:0;height:2px;z-index:199;background:rgba(139,92,246,.1)}
-#prog-bar{height:100%;background:linear-gradient(90deg,var(--p),var(--pink),var(--cyan));width:0%;transition:width .08s}
-
-/* CONTENT WRAP */
-.wrap{position:relative;z-index:2}
-
-/* HERO */
-.hero{min-height:100vh;display:grid;place-items:center;padding:7rem 5rem 5rem;position:relative;overflow:hidden;text-align:center}
-.hero-grid{position:absolute;inset:0;background-image:linear-gradient(rgba(139,92,246,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(139,92,246,.05) 1px,transparent 1px);background-size:70px 70px}
-.hero-badge{display:inline-flex;align-items:center;gap:8px;background:rgba(139,92,246,.1);border:1px solid rgba(139,92,246,.28);color:var(--pb);font-size:.7rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;padding:8px 18px;border-radius:100px;margin-bottom:2rem}
-.bdot{width:6px;height:6px;border-radius:50%;background:var(--p);animation:blink 2s infinite}
-@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
-.hero h1{font-family:var(--fd);font-size:clamp(3.5rem,8vw,7rem);font-weight:800;line-height:.95;letter-spacing:-4px;margin-bottom:1.75rem}
-.h1-white{display:block;color:var(--white)}
-.h1-grad{display:block;background:linear-gradient(90deg,var(--pl),var(--pink),var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
-.h1-dim{display:block;color:rgba(245,240,255,.2)}
-.hero-sub{font-size:1.05rem;color:var(--muted);line-height:1.8;max-width:560px;margin:0 auto 2.5rem;font-weight:300}
-.hero-btns{display:flex;gap:1rem;justify-content:center;flex-wrap:wrap}
-.btn-p{display:inline-flex;align-items:center;gap:8px;background:linear-gradient(135deg,var(--p),#5b21b6);color:var(--white);padding:14px 28px;border-radius:12px;text-decoration:none;font-weight:600;font-size:.9rem;box-shadow:0 0 30px var(--pglow);transition:all .25s}
-.btn-p:hover{transform:translateY(-2px);box-shadow:0 0 50px rgba(139,92,246,.5)}
-.btn-o{display:inline-flex;align-items:center;gap:8px;background:transparent;color:var(--pb);border:1px solid var(--border2);padding:14px 28px;border-radius:12px;text-decoration:none;font-weight:500;font-size:.9rem;transition:all .25s}
-.btn-o:hover{background:rgba(139,92,246,.1);transform:translateY(-2px)}
-.hero-stats{display:flex;gap:2rem;justify-content:center;margin-top:4rem;flex-wrap:wrap}
-.hstat{text-align:center}
-.hstat-n{font-family:var(--fd);font-size:2.5rem;font-weight:800;background:linear-gradient(135deg,var(--pl),var(--pink));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
-.hstat-l{font-size:.7rem;color:var(--muted2);letter-spacing:1.5px;text-transform:uppercase;margin-top:4px}
-
-/* SECTION */
-.sec{padding:5.5rem 5rem;border-top:1px solid var(--border)}
-.sec-inner{max-width:1300px;margin:0 auto}
-.sec-eye{display:flex;align-items:center;gap:8px;font-size:.68rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--pl);margin-bottom:.75rem}
-.eye-ln{width:20px;height:1.5px;background:var(--p);display:inline-block}
-.sec-title{font-family:var(--fd);font-size:clamp(2rem,4vw,3rem);font-weight:800;letter-spacing:-1.5px;margin-bottom:3rem;line-height:1.05}
-.sec-title .acc{background:linear-gradient(90deg,var(--pl),var(--pink));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
-.glow-div{height:1px;background:linear-gradient(90deg,transparent,var(--p),var(--pink),var(--p),transparent);opacity:.3}
-.reveal{opacity:0;transform:translateY(20px);transition:opacity .6s cubic-bezier(.2,.8,.2,1),transform .6s cubic-bezier(.2,.8,.2,1)}
-.revealed{opacity:1!important;transform:translateY(0)!important}
-
-/* ═══════ FORMULA CARDS ═══════ */
-.f-tabs{display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:2rem}
-.f-tab{background:rgba(139,92,246,.08);border:1px solid var(--border);color:var(--muted);padding:7px 16px;border-radius:20px;font-size:.78rem;font-weight:500;cursor:pointer;font-family:var(--fb);transition:all .2s}
-.f-tab.on{background:var(--p);border-color:var(--p);color:var(--white)}
-.f-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(255px,1fr));gap:1rem}
-.fc{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:1.4rem;transition:all .3s;position:relative;overflow:hidden}
-.fc::after{content:'';position:absolute;bottom:-30px;right:-30px;width:80px;height:80px;border-radius:50%;border:1px solid rgba(139,92,246,.1)}
-.fc:hover{border-color:rgba(139,92,246,.4);transform:translateY(-3px);background:var(--card2);box-shadow:0 12px 40px rgba(0,0,0,.4)}
-.fc-cat{font-size:.6rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--p);margin-bottom:.6rem}
-.fc-eq{font-family:var(--fm);font-size:1.15rem;font-weight:500;color:var(--white);margin-bottom:.5rem;line-height:1.5}
-.fc-desc{font-size:.78rem;color:var(--muted);line-height:1.7;font-weight:300}
-.fc-unit{margin-top:.6rem;font-family:var(--fm);font-size:.62rem;color:rgba(139,92,246,.55);border-top:1px solid var(--border);padding-top:.5rem}
-
-/* ═══════ PROFESSIONAL CALCULATOR ═══════ */
-#calc-sec{background:var(--bg2)}
-.calc-wrap{display:grid;grid-template-columns:340px 1fr;gap:2rem;align-items:start}
-.calc-body{background:linear-gradient(145deg,#1a0d3d,#120830);border:1px solid var(--border2);border-radius:24px;overflow:hidden;box-shadow:0 30px 80px rgba(0,0,0,.6),0 0 0 1px rgba(139,92,246,.1)}
-.calc-screen{background:rgba(0,0,0,.5);padding:1.5rem;border-bottom:1px solid var(--border)}
-.calc-expr{font-family:var(--fm);font-size:.8rem;color:var(--muted2);min-height:20px;text-align:right;margin-bottom:.4rem;word-break:break-all}
-.calc-disp{font-family:var(--fm);font-size:2.4rem;font-weight:500;color:var(--white);text-align:right;min-height:52px;letter-spacing:-1px;word-break:break-all;transition:all .1s}
-.calc-disp.err{color:var(--red);font-size:1.5rem}
-.calc-mode{display:flex;gap:.5rem;padding:.75rem 1.25rem;background:rgba(0,0,0,.2);border-bottom:1px solid var(--border)}
-.mode-btn{background:none;border:1px solid transparent;color:var(--muted);font-size:.7rem;font-weight:600;letter-spacing:.5px;padding:5px 10px;border-radius:6px;cursor:pointer;font-family:var(--fm);transition:all .2s;text-transform:uppercase}
-.mode-btn.active{background:rgba(139,92,246,.2);border-color:var(--p);color:var(--pl)}
-.calc-hist{padding:.75rem 1.25rem;font-size:.7rem;color:var(--muted2);max-height:64px;overflow-y:auto;font-family:var(--fm);background:rgba(0,0,0,.15);border-bottom:1px solid var(--border)}
-.calc-hist span{display:block;text-align:right;margin-bottom:2px}
-.calc-btns{display:grid;grid-template-columns:repeat(5,1fr);gap:1px;background:rgba(139,92,246,.06)}
-.cb{background:var(--card);border:none;color:var(--white);font-size:.88rem;font-weight:500;padding:18px 8px;cursor:pointer;font-family:var(--fm);transition:all .15s;position:relative;overflow:hidden}
-.cb::after{content:'';position:absolute;inset:0;background:rgba(255,255,255,0);transition:background .15s}
-.cb:hover::after{background:rgba(255,255,255,.05)}
-.cb:active::after{background:rgba(255,255,255,.12)}
-.cb.op{color:var(--pl)}
-.cb.fn{color:var(--cyan);font-size:.78rem}
-.cb.eq{background:linear-gradient(135deg,var(--p),#5b21b6);color:var(--white);font-size:1.1rem;grid-column:span 1}
-.cb.clr{color:var(--red)}
-.cb.zero{grid-column:span 2}
-.cb.span2{grid-column:span 2}
-
-/* Calc side panel */
-.calc-panel{display:flex;flex-direction:column;gap:1.25rem}
-.cp-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);overflow:hidden}
-.cp-head{padding:.9rem 1.25rem;background:rgba(139,92,246,.08);border-bottom:1px solid var(--border);font-size:.75rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--pl);display:flex;align-items:center;gap:8px}
-.cp-body{padding:1.25rem}
-.conv-row{display:grid;grid-template-columns:1fr auto 1fr;gap:.75rem;align-items:center;margin-bottom:.75rem}
-.conv-inp{background:rgba(139,92,246,.07);border:1px solid var(--border);border-radius:8px;padding:9px 12px;color:var(--white);font-family:var(--fm);font-size:.9rem;outline:none;width:100%;transition:border-color .2s}
-.conv-inp:focus{border-color:var(--p)}
-.conv-sel{background:rgba(139,92,246,.07);border:1px solid var(--border);border-radius:8px;padding:9px 10px;color:var(--white);font-family:var(--fb);font-size:.82rem;outline:none;width:100%;cursor:pointer;appearance:none}
-.conv-arrow{color:var(--p);font-size:1.1rem;text-align:center}
-.conv-result{font-family:var(--fm);font-size:1rem;color:var(--pb);padding:.75rem 1rem;background:rgba(139,92,246,.08);border-radius:8px;text-align:center;min-height:40px;border:1px solid var(--border)}
-.const-grid{display:grid;grid-template-columns:1fr 1fr;gap:.5rem}
-.const-item{background:rgba(139,92,246,.07);border:1px solid var(--border);border-radius:8px;padding:.65rem .75rem;cursor:pointer;transition:all .2s}
-.const-item:hover{background:rgba(139,92,246,.14);border-color:var(--border2)}
-.const-sym{font-family:var(--fm);font-size:.75rem;color:var(--pl);margin-bottom:2px}
-.const-val{font-family:var(--fm);font-size:.62rem;color:var(--muted2)}
-.const-name{font-size:.68rem;color:var(--muted);margin-top:2px}
-
-/* ═══════ VIRTUAL LAB ═══════ */
-#lab-sec{background:var(--bg3)}
-.lab-wrap{display:grid;grid-template-columns:220px 1fr 260px;gap:1.25rem;min-height:600px}
-.lab-sidebar{background:var(--card);border:1px solid var(--border);border-radius:var(--r);overflow:hidden}
-.lab-sb-head{padding:.9rem 1.1rem;background:rgba(139,92,246,.1);border-bottom:1px solid var(--border);font-size:.72rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--pl)}
-.comp-list{padding:.75rem}
-.comp-item{display:flex;align-items:center;gap:.7rem;padding:.7rem .8rem;border-radius:10px;cursor:grab;border:1px solid var(--border);margin-bottom:.5rem;background:rgba(139,92,246,.05);transition:all .2s;user-select:none}
-.comp-item:hover{background:rgba(139,92,246,.12);border-color:var(--border2);transform:translateX(3px)}
-.comp-item:active{cursor:grabbing}
-.comp-ico{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0}
-.comp-lbl{font-size:.78rem;font-weight:500;color:var(--white)}
-.comp-sub{font-size:.65rem;color:var(--muted2);margin-top:1px}
-
-.lab-canvas-wrap{background:var(--card);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;position:relative;display:flex;flex-direction:column}
-.lab-toolbar{display:flex;align-items:center;gap:.5rem;padding:.7rem 1rem;border-bottom:1px solid var(--border);background:rgba(139,92,246,.05);flex-wrap:wrap}
-.lab-btn{background:rgba(139,92,246,.08);border:1px solid var(--border);color:var(--muted);padding:6px 12px;border-radius:8px;font-size:.75rem;cursor:pointer;font-family:var(--fb);transition:all .2s;display:flex;align-items:center;gap:5px}
-.lab-btn:hover{background:rgba(139,92,246,.18);color:var(--white);border-color:var(--border2)}
-.lab-btn.danger{color:var(--red);border-color:rgba(248,113,113,.2)}
-.lab-btn.danger:hover{background:rgba(248,113,113,.1);border-color:rgba(248,113,113,.4)}
-.lab-btn.success{color:var(--green);border-color:rgba(52,211,153,.2)}
-.lab-btn.success:hover{background:rgba(52,211,153,.1)}
-#lab-canvas{flex:1;position:relative;min-height:500px;background:radial-gradient(ellipse at 50% 50%,rgba(139,92,246,.04) 0%,transparent 70%);background-image:linear-gradient(rgba(139,92,246,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(139,92,246,.04) 1px,transparent 1px);background-size:30px 30px;overflow:hidden}
-.drop-hint{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none;opacity:.35}
-.drop-hint-ico{font-size:3rem;margin-bottom:.75rem}
-.drop-hint p{font-size:.85rem;color:var(--muted);text-align:center;line-height:1.7}
-
-/* Circuit components on canvas */
-.c-comp{position:absolute;user-select:none;cursor:move;transition:box-shadow .2s}
-.c-comp.selected .c-comp-inner{border-color:var(--p)!important;box-shadow:0 0 0 2px rgba(139,92,246,.4)!important}
-.c-comp-inner{background:var(--card2);border:1.5px solid var(--border2);border-radius:10px;padding:.6rem .9rem;display:flex;align-items:center;gap:.5rem;min-width:110px;font-size:.8rem;white-space:nowrap}
-.c-comp-inner .ico{font-size:1.2rem}
-.c-comp-inner .info{flex:1}
-.c-comp-inner .lbl{font-weight:600;color:var(--white);font-size:.78rem}
-.c-comp-inner .val{font-family:var(--fm);font-size:.7rem;color:var(--pl);margin-top:1px}
-.c-comp-del{position:absolute;top:-8px;right:-8px;width:18px;height:18px;background:var(--red);border-radius:50%;display:none;align-items:center;justify-content:center;font-size:.65rem;cursor:pointer;color:#fff;z-index:10}
-.c-comp.selected .c-comp-del{display:flex}
-.c-comp-edit{position:absolute;bottom:-8px;right:-8px;width:18px;height:18px;background:var(--p);border-radius:50%;display:none;align-items:center;justify-content:center;font-size:.6rem;cursor:pointer;color:#fff;z-index:10}
-.c-comp.selected .c-comp-edit{display:flex}
-
-/* Wire drawing */
-.wire-svg{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none}
-.wire{stroke:var(--pl);stroke-width:2;fill:none;filter:drop-shadow(0 0 4px rgba(139,92,246,.5))}
-.wire.active-wire{stroke:var(--cyan);stroke-dasharray:6,4;animation:dash .8s linear infinite}
-@keyframes dash{to{stroke-dashoffset:-20}}
-.conn-port{width:10px;height:10px;border-radius:50%;background:var(--bg);border:2px solid var(--p);position:absolute;cursor:crosshair;z-index:5;transition:all .2s}
-.conn-port:hover{background:var(--p);transform:scale(1.4)}
-
-/* Lab info panel */
-.lab-info{background:var(--card);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;display:flex;flex-direction:column}
-.lab-info-head{padding:.9rem 1.1rem;background:rgba(139,92,246,.1);border-bottom:1px solid var(--border);font-size:.72rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--pl)}
-.lab-info-body{padding:1.1rem;flex:1;overflow-y:auto}
-.info-metric{margin-bottom:1rem;padding-bottom:1rem;border-bottom:1px solid var(--border)}
-.info-metric:last-child{border-bottom:none;margin-bottom:0;padding-bottom:0}
-.info-lbl{font-size:.68rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted2);margin-bottom:.35rem}
-.info-val{font-family:var(--fm);font-size:1.2rem;font-weight:500;color:var(--white)}
-.info-unit{font-size:.7rem;color:var(--muted);margin-left:4px}
-.info-bar{height:6px;background:rgba(139,92,246,.15);border-radius:3px;margin-top:.5rem;overflow:hidden}
-.info-bar-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--p),var(--pink));transition:width .4s cubic-bezier(.2,.8,.2,1);width:0%}
-.lab-log{background:rgba(0,0,0,.3);border-top:1px solid var(--border);padding:.85rem 1.1rem;font-family:var(--fm);font-size:.7rem;color:var(--muted);max-height:140px;overflow-y:auto;line-height:2}
-.log-entry{display:block;border-bottom:1px solid rgba(139,92,246,.07);padding-bottom:2px;margin-bottom:2px}
-.log-ok{color:var(--green)}
-.log-warn{color:var(--gold)}
-.log-err{color:var(--red)}
-.presets-row{display:flex;gap:.5rem;padding:.75rem 1.1rem;border-top:1px solid var(--border);flex-wrap:wrap}
-.preset-btn{background:rgba(139,92,246,.1);border:1px solid var(--border);color:var(--pb);font-size:.72rem;padding:5px 10px;border-radius:6px;cursor:pointer;font-family:var(--fb);transition:all .2s;white-space:nowrap}
-.preset-btn:hover{background:rgba(139,92,246,.22);border-color:var(--p)}
-
-/* EDIT MODAL */
-.modal-overlay{position:fixed;inset:0;z-index:500;background:rgba(8,4,26,.85);backdrop-filter:blur(12px);display:none;align-items:center;justify-content:center}
-.modal-overlay.show{display:flex}
-.modal{background:var(--card);border:1px solid var(--border2);border-radius:20px;padding:2rem;min-width:320px;max-width:420px;width:90%;position:relative}
-.modal-top{position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--p),var(--pink));border-radius:20px 20px 0 0}
-.modal h3{font-family:var(--fd);font-size:1.1rem;font-weight:700;color:var(--white);margin-bottom:.25rem}
-.modal p{font-size:.8rem;color:var(--muted);margin-bottom:1.5rem}
-.modal-inp-row{margin-bottom:1rem}
-.modal-inp-row label{display:block;font-size:.72rem;font-weight:600;color:var(--muted);letter-spacing:.5px;margin-bottom:.4rem;text-transform:uppercase}
-.modal-inp{width:100%;background:rgba(139,92,246,.07);border:1px solid var(--border2);border-radius:10px;padding:11px 14px;color:var(--white);font-family:var(--fm);font-size:.9rem;outline:none;transition:border-color .2s}
-.modal-inp:focus{border-color:var(--p)}
-.modal-actions{display:flex;gap:.75rem;margin-top:1.5rem}
-.modal-ok{flex:1;padding:11px;background:linear-gradient(135deg,var(--p),#5b21b6);border:none;border-radius:10px;color:#fff;font-weight:600;font-size:.88rem;cursor:pointer;font-family:var(--fb);transition:all .2s}
-.modal-ok:hover{opacity:.9}
-.modal-cancel{padding:11px 18px;background:rgba(139,92,246,.08);border:1px solid var(--border);border-radius:10px;color:var(--muted);cursor:pointer;font-family:var(--fb);font-size:.88rem;transition:all .2s}
-.modal-cancel:hover{color:var(--white);background:rgba(139,92,246,.16)}
-
-/* SEARCH OVERLAY */
-.search-ov{position:fixed;inset:0;z-index:300;background:rgba(8,4,26,.9);backdrop-filter:blur(20px);display:none;align-items:flex-start;justify-content:center;padding-top:12vh}
-.search-ov.show{display:flex}
-.search-box{width:100%;max-width:660px;padding:0 2rem}
-.search-inp-wrap{position:relative;margin-bottom:1.25rem}
-.search-ico{position:absolute;left:18px;top:50%;transform:translateY(-50%);color:rgba(139,92,246,.55);font-size:1rem}
-.search-inp{width:100%;padding:17px 17px 17px 50px;background:rgba(30,17,69,.95);border:1.5px solid rgba(139,92,246,.4);border-radius:14px;color:var(--white);font-family:var(--fb);font-size:1rem;outline:none;box-shadow:0 0 50px rgba(139,92,246,.2)}
-.search-inp::placeholder{color:var(--muted2)}
-.search-esc{position:absolute;right:14px;top:50%;transform:translateY(-50%);background:rgba(139,92,246,.1);border:1px solid var(--border2);color:var(--muted);font-size:.68rem;padding:4px 9px;border-radius:5px;font-family:var(--fm)}
-.search-res{background:rgba(24,15,58,.97);border:1px solid rgba(139,92,246,.18);border-radius:14px;overflow:hidden;max-height:52vh;overflow-y:auto}
-.search-item{display:flex;align-items:center;justify-content:space-between;padding:12px 18px;border-bottom:1px solid rgba(139,92,246,.08);cursor:pointer;transition:background .15s;gap:1rem;text-decoration:none}
-.search-item:hover{background:rgba(139,92,246,.1)}
-.search-item-l .stitle{font-size:.88rem;font-weight:600;color:var(--white);margin-bottom:2px}
-.search-item-l .sdesc{font-family:var(--fm);font-size:.73rem;color:var(--muted)}
-.search-badge{font-size:.62rem;font-weight:700;letter-spacing:1px;padding:3px 9px;border-radius:5px;white-space:nowrap}
-
-/* BACK TO TOP */
-#btt{position:fixed;bottom:2rem;right:2rem;z-index:100;width:42px;height:42px;border-radius:50%;background:linear-gradient(135deg,var(--p),#5b21b6);border:none;color:#fff;font-size:1rem;cursor:pointer;box-shadow:0 4px 20px var(--pglow);display:none;align-items:center;justify-content:center;transition:all .25s}
-#btt:hover{transform:translateY(-3px);box-shadow:0 8px 30px rgba(139,92,246,.55)}
-
-/* FOOTER */
-footer{background:var(--bg3);border-top:1px solid var(--border);padding:4rem 5rem}
-.footer-grid{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:3rem;padding-bottom:3rem;border-bottom:1px solid var(--border);margin-bottom:2rem}
-.footer-logo{font-family:var(--fd);font-size:1.4rem;font-weight:800;color:var(--white);display:flex;align-items:center;gap:10px;margin-bottom:.75rem}
-.footer-brand p{font-size:.84rem;color:var(--muted);line-height:1.85;font-weight:300}
-.footer-col h4{font-size:.63rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--p);margin-bottom:1rem}
-.footer-col a,.footer-col p{font-size:.875rem;color:var(--muted);display:block;text-decoration:none;line-height:2.1;transition:color .2s}
-.footer-col a:hover{color:var(--white)}
-.gh-link{display:inline-flex;align-items:center;gap:7px;background:rgba(139,92,246,.1);border:1px solid var(--border2);color:var(--pb)!important;padding:9px 15px;border-radius:10px;margin-top:.6rem;font-size:.8rem!important;font-weight:500;transition:all .2s!important}
-.gh-link:hover{background:rgba(139,92,246,.2)!important;border-color:var(--p)!important}
-.footer-bot{display:flex;justify-content:space-between;flex-wrap:wrap;gap:1rem}
-.footer-bot p{font-size:.78rem;color:rgba(196,181,253,.25)}
-@media(max-width:1100px){.calc-wrap{grid-template-columns:1fr}.lab-wrap{grid-template-columns:1fr}.lab-sidebar,.lab-info{display:none}.footer-grid{grid-template-columns:1fr 1fr}}
-@media(max-width:700px){.sec{padding:3.5rem 1.5rem}.hero{padding:5rem 1.5rem 4rem}nav{padding:0 1.25rem}footer{padding:3rem 1.5rem}.footer-grid{grid-template-columns:1fr}#cur,#cur-r{display:none}body{cursor:auto}.hero h1{letter-spacing:-2.5px}}
-</style>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1"/>
+  <meta name="theme-color" content="#0f0f13"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+  <meta name="apple-mobile-web-app-title" content="FocusFlow"/>
+  <link rel="manifest" href="manifest.json"/>
+  <title>FocusFlow — by Omar Mohamed</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.47.0/tabler-icons.min.css"/>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <link rel="stylesheet" href="css/style.css"/>
 </head>
 <body>
-<div id="cur"></div><div id="cur-r"></div>
-<div class="amb"><div class="orb o1"></div><div class="orb o2"></div><div class="orb o3"></div></div>
-<div class="grain"></div>
-<div id="prog"><div id="prog-bar"></div></div>
 
-<!-- SEARCH -->
-<div class="search-ov" id="searchOv">
-  <div class="search-box">
-    <div class="search-inp-wrap">
-      <span class="search-ico">🔍</span>
-      <input class="search-inp" id="sInp" placeholder="Search formulas, laws, topics…" autocomplete="off">
-      <span class="search-esc">ESC</span>
+<!-- ══ AUTH ══ -->
+<div id="auth-screen">
+  <div class="orb orb1"></div>
+  <div class="orb orb2"></div>
+  <div class="auth-card">
+    <div class="auth-logo">
+      <div class="auth-icon"><i class="ti ti-target"></i></div>
+      <div><div class="auth-name">FocusFlow</div><div class="auth-dev">by Omar Mohamed</div></div>
     </div>
-    <div class="search-res" id="sRes"></div>
-  </div>
-</div>
-
-<!-- EDIT MODAL -->
-<div class="modal-overlay" id="editModal">
-  <div class="modal">
-    <div class="modal-top"></div>
-    <h3 id="modal-title">Edit Component</h3>
-    <p id="modal-sub">Set the component value</p>
-    <div class="modal-inp-row">
-      <label id="modal-lbl">Value</label>
-      <input class="modal-inp" id="modal-inp" type="number" step="any">
+    <div class="auth-tabs">
+      <button class="atab active" onclick="showTab('login')">Sign in</button>
+      <button class="atab" onclick="showTab('register')">Create account</button>
     </div>
-    <div class="modal-inp-row" id="modal-row2" style="display:none">
-      <label id="modal-lbl2">EMF (V)</label>
-      <input class="modal-inp" id="modal-inp2" type="number" step="any">
+    <div id="login-form">
+      <div class="fld"><label>Email</label><div class="fi"><i class="ti ti-mail"></i><input type="email" id="l-email" placeholder="you@email.com" autocomplete="email"/></div></div>
+      <div class="fld"><label>Password</label><div class="fi"><i class="ti ti-lock"></i><input type="password" id="l-pw" placeholder="••••••••"/><i class="ti ti-eye peye" onclick="togglePw('l-pw',this)"></i></div></div>
+      <button class="btn-auth" onclick="doLogin()"><i class="ti ti-login"></i> Sign in</button>
+      <p class="aerr" id="l-err"></p>
     </div>
-    <div class="modal-actions">
-      <button class="modal-cancel" onclick="closeModal()">Cancel</button>
-      <button class="modal-ok" id="modal-ok">Apply ✓</button>
+    <div id="reg-form" style="display:none">
+      <div class="fld"><label>Full name</label><div class="fi"><i class="ti ti-user"></i><input type="text" id="r-name" placeholder="Your name"/></div></div>
+      <div class="fld"><label>Email</label><div class="fi"><i class="ti ti-mail"></i><input type="email" id="r-email" placeholder="you@email.com" autocomplete="email"/></div></div>
+      <div class="fld"><label>Password</label><div class="fi"><i class="ti ti-lock"></i><input type="password" id="r-pw" placeholder="••••••••"/><i class="ti ti-eye peye" onclick="togglePw('r-pw',this)"></i></div></div>
+      <button class="btn-auth" onclick="doRegister()"><i class="ti ti-user-plus"></i> Create account</button>
+      <p class="aerr" id="r-err"></p>
     </div>
   </div>
 </div>
 
-<div class="wrap">
-<!-- ── NAV ── -->
-<nav>
-  <a href="#" class="logo"><div class="logo-ico">⚛</div>PhysicsLab<span style="color:var(--pl)">Pro</span></a>
-  <div class="nav-r">
-    <a href="#formulas" class="nav-tab">Formulas</a>
-    <a href="#calc-sec" class="nav-tab">Calculator</a>
-    <a href="#lab-sec" class="nav-tab">Virtual Lab</a>
-    <button class="nav-search" onclick="openSearch()">🔍 Search <span style="font-family:var(--fm);font-size:.65rem;opacity:.5;margin-left:4px">⌘K</span></button>
-    <a href="https://github.com/omarmohamedismail" target="_blank" class="nav-tab nav-gh">GitHub ↗</a>
-  </div>
-</nav>
+<!-- ══ APP ══ -->
+<div id="app-screen" style="display:none">
 
-<!-- ── HERO ── -->
-<section class="hero">
-  <div class="hero-grid"></div>
-  <div style="position:relative;z-index:2">
-    <div class="hero-badge"><span class="bdot"></span>Secondary Physics · 2026 · Omar Ismail</div>
-    <h1>
-      <span class="h1-white">Physics</span>
-      <span class="h1-grad">Lab Pro</span>
-      <span class="h1-dim">Unleashed.</span>
-    </h1>
-    <p class="hero-sub">Complete formulas, professional calculator, interactive virtual circuit lab — everything for mastering physics in one place.</p>
-    <div class="hero-btns">
-      <a href="#lab-sec" class="btn-p">⚗️ Open Virtual Lab</a>
-      <a href="#calc-sec" class="btn-o">🧮 Calculator</a>
-      <a href="#formulas" class="btn-o">📐 Formulas</a>
+  <aside id="sidebar">
+    <div class="sb-brand">
+      <div class="sb-icon"><i class="ti ti-target"></i></div>
+      <div><div class="sb-title">FocusFlow</div><div class="sb-dev">by Omar Mohamed</div></div>
     </div>
-    <div class="hero-stats">
-      <div class="hstat"><div class="hstat-n" data-target="60">0</div><div class="hstat-l">Formulas</div></div>
-      <div class="hstat"><div class="hstat-n" data-target="3">0</div><div class="hstat-l">Chapters</div></div>
-      <div class="hstat"><div class="hstat-n" data-target="8">0</div><div class="hstat-l">Calculators</div></div>
-      <div class="hstat"><div class="hstat-n" data-target="1">0</div><div class="hstat-l">Virtual Lab</div></div>
+    <div class="sb-user" onclick="navigate('profile')">
+      <div class="av av-sm" id="sb-av"></div>
+      <div><div class="sb-uname" id="sb-name">—</div><div class="sb-usub">View profile →</div></div>
     </div>
-  </div>
-</section>
-<div class="glow-div"></div>
+    <nav class="sb-nav">
+      <a class="sn active" data-p="dashboard" onclick="navigate('dashboard')"><span class="sni purple"><i class="ti ti-layout-dashboard"></i></span>Dashboard</a>
+      <a class="sn" data-p="timer"     onclick="navigate('timer')">    <span class="sni violet"><i class="ti ti-clock"></i></span>Pomodoro</a>
+      <a class="sn" data-p="sleep"     onclick="navigate('sleep')">    <span class="sni blue"><i class="ti ti-moon"></i></span>Sleep</a>
+      <a class="sn" data-p="habits"    onclick="navigate('habits')">   <span class="sni green"><i class="ti ti-heart"></i></span>Habits</a>
+      <a class="sn" data-p="water"     onclick="navigate('water')">    <span class="sni cyan"><i class="ti ti-droplet"></i></span>Water</a>
+      <a class="sn" data-p="notes"     onclick="navigate('notes')">    <span class="sni amber"><i class="ti ti-notes"></i></span>Notes</a>
+      <a class="sn" data-p="analytics" onclick="navigate('analytics')"><span class="sni coral"><i class="ti ti-chart-line"></i></span>Analytics</a>
+      <a class="sn" data-p="profile"   onclick="navigate('profile')">  <span class="sni pink"><i class="ti ti-user"></i></span>Profile</a>
+    </nav>
+    <div class="sb-foot">
+      <button class="btn-logout" onclick="doLogout()"><i class="ti ti-logout"></i> Sign out</button>
+    </div>
+  </aside>
 
-<!-- ══════════ FORMULAS ══════════ -->
-<section id="formulas" class="sec">
-  <div class="sec-inner">
-    <div class="sec-eye"><span class="eye-ln"></span>Complete Reference</div>
-    <div class="sec-title reveal">All <span class="acc">Formulas</span></div>
-    <div class="f-tabs">
-      <button class="f-tab on" onclick="filterF('all',this)">All (60+)</button>
-      <button class="f-tab" onclick="filterF('ch1',this)">Ch.1 — Electric Current</button>
-      <button class="f-tab" onclick="filterF('ch2',this)">Ch.2 — Magnetic Effect</button>
-      <button class="f-tab" onclick="filterF('ch3',this)">Ch.3 — EM Induction</button>
-      <button class="f-tab" onclick="filterF('inst',this)">Instruments</button>
-    </div>
-    <div class="f-grid" id="fGrid"></div>
-  </div>
-</section>
-<div class="glow-div"></div>
+  <header id="topbar">
+    <button class="menu-btn" onclick="toggleSB()"><i class="ti ti-menu-2"></i></button>
+    <span id="topbar-title">Dashboard</span>
+    <div class="av av-xs" id="tb-av" onclick="navigate('profile')"></div>
+  </header>
 
-<!-- ══════════ CALCULATOR ══════════ -->
-<section id="calc-sec" class="sec">
-  <div class="sec-inner">
-    <div class="sec-eye"><span class="eye-ln"></span>Professional Tools</div>
-    <div class="sec-title reveal">Scientific <span class="acc">Calculator</span></div>
-    <div class="calc-wrap">
-      <!-- Main Calculator -->
-      <div>
-        <div class="calc-body">
-          <div class="calc-screen">
-            <div class="calc-expr" id="cExpr"></div>
-            <div class="calc-disp" id="cDisp">0</div>
-          </div>
-          <div class="calc-mode">
-            <button class="mode-btn active" onclick="setMode('deg',this)">DEG</button>
-            <button class="mode-btn" onclick="setMode('rad',this)">RAD</button>
-            <button class="mode-btn" onclick="setMode('grad',this)">GRAD</button>
-            <span style="flex:1"></span>
-            <span id="mem-ind" style="font-size:.65rem;color:var(--pl);font-family:var(--fm);display:none">M</span>
-          </div>
-          <div class="calc-hist" id="cHist"><span style="opacity:.4">— history —</span></div>
-          <div class="calc-btns" id="cBtns"></div>
-        </div>
+  <main id="main">
+
+    <!-- DASHBOARD -->
+    <div id="page-dashboard" class="page active">
+      <div class="page-hd">
+        <div><h1 id="dash-greet">Good morning 👋</h1><p class="page-sub" id="dash-date"></p></div>
+        <div class="av av-md" id="dash-av" onclick="navigate('profile')" style="cursor:pointer"></div>
       </div>
-      <!-- Side Panel -->
-      <div class="calc-panel">
-        <!-- Unit Converter -->
-        <div class="cp-card">
-          <div class="cp-head">⚡ Unit Converter</div>
-          <div class="cp-body">
-            <div class="conv-row">
-              <input class="conv-inp" id="cv-from" type="number" placeholder="Value" oninput="doConvert()">
-              <div class="conv-arrow">→</div>
-              <div class="conv-result" id="cv-result">—</div>
+      <div class="kpi-row">
+        <div class="kpi purple"><i class="ti ti-clock"></i><div class="kpi-val" id="kpi-focus">0m</div><div class="kpi-lbl">Focus today</div></div>
+        <div class="kpi blue">  <i class="ti ti-moon"></i> <div class="kpi-val" id="kpi-sleep">—</div>  <div class="kpi-lbl">Last sleep</div></div>
+        <div class="kpi amber"> <i class="ti ti-flame"></i><div class="kpi-val" id="kpi-streak">0</div> <div class="kpi-lbl">Day streak</div></div>
+        <div class="kpi green"> <i class="ti ti-heart"></i><div class="kpi-val" id="kpi-habits">0/0</div><div class="kpi-lbl">Habits done</div></div>
+      </div>
+      <div class="g2">
+        <div class="card"><div class="card-hd"><span class="ctitle"><i class="ti ti-clock ics violet"></i> Weekly focus</span></div><canvas id="c-wf" height="150"></canvas></div>
+        <div class="card"><div class="card-hd"><span class="ctitle"><i class="ti ti-moon ics blue"></i> Sleep this week</span></div><canvas id="c-ws" height="150"></canvas></div>
+      </div>
+      <div class="card mt1"><div class="card-hd"><span class="ctitle"><i class="ti ti-activity ics green"></i> Today's activity</span></div><div id="dash-log" class="log-wrap"></div></div>
+      <div class="card mt1"><div class="card-hd"><span class="ctitle"><i class="ti ti-bulb ics amber"></i> Quote of the day</span></div><p class="quote-txt" id="dash-quote"></p></div>
+    </div>
+
+    <!-- TIMER -->
+    <div id="page-timer" class="page">
+      <div class="page-hd"><h1><i class="ti ti-clock ics violet"></i> Pomodoro Timer</h1></div>
+      <div class="timer-layout">
+        <div class="card timer-card">
+
+          <!-- Mode tabs -->
+          <div class="mode-tabs">
+            <button class="mtab active" onclick="setMode('focus')">Focus</button>
+            <button class="mtab" onclick="setMode('short')">Short break</button>
+            <button class="mtab" onclick="setMode('long')">Long break</button>
+          </div>
+
+          <!-- Ring -->
+          <div class="ring-wrap">
+            <svg viewBox="0 0 220 220" class="ring-svg">
+              <circle class="ring-bg" cx="110" cy="110" r="98"/>
+              <circle id="ring-fg" class="ring-fg" cx="110" cy="110" r="98"/>
+            </svg>
+            <div class="ring-center">
+              <div class="ring-time" id="t-disp">25:00</div>
+              <div class="ring-lbl"  id="t-lbl">FOCUS TIME</div>
             </div>
-            <select class="conv-sel" id="cv-type" onchange="doConvert()" style="margin-bottom:.75rem">
-              <option value="">— Select Conversion —</option>
-              <optgroup label="Energy">
-                <option value="J_cal">Joule → Calorie</option>
-                <option value="cal_J">Calorie → Joule</option>
-                <option value="J_eV">Joule → eV</option>
-                <option value="eV_J">eV → Joule</option>
-                <option value="kWh_J">kWh → Joule</option>
-                <option value="J_kWh">Joule → kWh</option>
-              </optgroup>
-              <optgroup label="Power">
-                <option value="W_hp">Watt → Horsepower</option>
-                <option value="hp_W">Horsepower → Watt</option>
-                <option value="kW_W">kW → W</option>
-                <option value="W_kW">W → kW</option>
-              </optgroup>
-              <optgroup label="Resistance">
-                <option value="Ohm_kOhm">Ω → kΩ</option>
-                <option value="kOhm_Ohm">kΩ → Ω</option>
-                <option value="Ohm_MOhm">Ω → MΩ</option>
-                <option value="MOhm_Ohm">MΩ → Ω</option>
-              </optgroup>
-              <optgroup label="Current">
-                <option value="A_mA">A → mA</option>
-                <option value="mA_A">mA → A</option>
-                <option value="A_uA">A → μA</option>
-                <option value="uA_A">μA → A</option>
-              </optgroup>
-              <optgroup label="Magnetic">
-                <option value="T_mT">Tesla → mTesla</option>
-                <option value="mT_T">mTesla → Tesla</option>
-                <option value="Wb_mWb">Weber → mWeber</option>
-                <option value="G_T">Gauss → Tesla</option>
-                <option value="T_G">Tesla → Gauss</option>
-              </optgroup>
-              <optgroup label="Capacitance">
-                <option value="F_uF">Farad → μF</option>
-                <option value="uF_F">μF → Farad</option>
-                <option value="uF_nF">μF → nF</option>
-                <option value="nF_pF">nF → pF</option>
-              </optgroup>
-            </select>
+          </div>
+
+          <!-- Session dots -->
+          <div class="sdots" id="sdots"></div>
+
+          <!-- Controls -->
+          <div class="t-ctrls">
+            <button class="t-sm" onclick="skipSession()" title="Skip"><i class="ti ti-player-skip-forward"></i></button>
+            <button class="t-play" id="play-btn" onclick="toggleTimer()"><i class="ti ti-player-play" id="play-icon"></i></button>
+            <button class="t-sm" onclick="resetTimer()" title="Reset"><i class="ti ti-refresh"></i></button>
+          </div>
+
+          <!-- ★ ADD TIME buttons (work while running or paused) -->
+          <div class="add-time-row">
+            <span class="add-time-lbl">Add time:</span>
+            <button class="add-t-btn" onclick="addTimeSecs(60)">+1m</button>
+            <button class="add-t-btn" onclick="addTimeSecs(300)">+5m</button>
+            <button class="add-t-btn" onclick="addTimeSecs(600)">+10m</button>
+            <button class="add-t-btn minus" onclick="addTimeSecs(-60)">−1m</button>
+            <button class="add-t-btn minus" onclick="addTimeSecs(-300)">−5m</button>
+          </div>
+
+          <!-- ★ Custom duration input -->
+          <div class="custom-dur-row">
+            <span class="add-time-lbl">Custom duration:</span>
+            <input type="number" class="custom-dur-inp" id="custom-min" min="1" max="180" placeholder="min" value=""/>
+            <button class="add-t-btn" onclick="applyCustomDur()">Set</button>
+          </div>
+
+          <!-- Stats -->
+          <div class="t-stats">
+            <div class="t-stat"><div class="t-sv" id="ts-sess">0</div><div class="t-sl">Sessions</div></div>
+            <div class="t-stat"><div class="t-sv" id="ts-min">0m</div><div class="t-sl">Focus today</div></div>
+            <div class="t-stat"><div class="t-sv" id="ts-str">0</div><div class="t-sl">Streak</div></div>
+          </div>
+
+          <!-- Ambient -->
+          <div class="amb-bar">
+            <div class="amb-lbl"><i class="ti ti-music"></i> Ambient sound</div>
+            <div class="amb-btns">
+              <button class="ab active" onclick="setAmb('off',this)">  <i class="ti ti-volume-off"></i> Off</button>
+              <button class="ab" onclick="setAmb('rain',this)"> 🌧 Rain</button>
+              <button class="ab" onclick="setAmb('white',this)">〰 White</button>
+              <button class="ab" onclick="setAmb('brown',this)">🌊 Brown</button>
+              <button class="ab" onclick="setAmb('cafe',this)"> ☕ Café</button>
+            </div>
           </div>
         </div>
-        <!-- Physics Constants -->
-        <div class="cp-card">
-          <div class="cp-head">🔬 Physics Constants</div>
-          <div class="cp-body">
-            <div class="const-grid" id="constGrid"></div>
+
+        <div class="timer-side">
+          <div class="card"><div class="card-hd"><span class="ctitle"><i class="ti ti-pencil ics amber"></i> Working on</span></div><input class="wi" id="working-on" type="text" placeholder="What are you studying?"/></div>
+          <div class="card mt1">
+            <div class="card-hd"><span class="ctitle"><i class="ti ti-checkbox ics purple"></i> Tasks</span></div>
+            <div class="task-row"><input type="text" class="task-inp" id="task-inp" placeholder="Add task…" onkeydown="if(event.key==='Enter')addTask()"/><button class="task-add" onclick="addTask()"><i class="ti ti-plus"></i></button></div>
+            <div id="task-list"></div>
           </div>
-        </div>
-        <!-- Formula Solver -->
-        <div class="cp-card">
-          <div class="cp-head">⚙️ Quick Formula Solver</div>
-          <div class="cp-body">
-            <select class="conv-sel" id="fs-type" onchange="renderFSolver()" style="margin-bottom:1rem">
-              <option value="">— Select Formula —</option>
-              <option value="ohm">Ohm's Law: V = IR</option>
-              <option value="power">Power: P = IV = I²R = V²/R</option>
-              <option value="energy">Energy: E = Pt</option>
-              <option value="charge">Charge: Q = It</option>
-              <option value="resist">Resistance: R = ρl/A</option>
-              <option value="bwire">Wire B: B = μI/(2πd)</option>
-              <option value="bcoil">Coil B: B = μIN/(2r)</option>
-              <option value="bsol">Solenoid B: B = μIN/l</option>
-              <option value="force">Wire Force: F = BIl·sinθ</option>
-              <option value="torque">Torque: τ = BIAN·sinθ</option>
-              <option value="emf">Faraday: emf = NΔΦ/Δt</option>
-              <option value="flux">Flux: φ = BA·cosθ</option>
-              <option value="mutual">Mutual: emf = MΔI/Δt</option>
-              <option value="resist_ser">Series: R = R₁+R₂+R₃</option>
-              <option value="resist_par">Parallel: 1/R = 1/R₁+1/R₂</option>
-            </select>
-            <div id="fs-fields"></div>
-            <div id="fs-result" style="font-family:var(--fm);font-size:.9rem;color:var(--pb);margin-top:.75rem;padding:.75rem;background:rgba(139,92,246,.08);border-radius:8px;min-height:36px;border:1px solid var(--border)"></div>
+          <div class="card mt1">
+            <div class="card-hd"><span class="ctitle"><i class="ti ti-settings ics coral"></i> Settings</span></div>
+            <div class="srow"><span>Focus duration</span><div class="dc"><button class="db" onclick="adjDur('focus',-5)">−</button><span id="d-focus">25m</span><button class="db" onclick="adjDur('focus',5)">+</button></div></div>
+            <div class="srow"><span>Short break</span>   <div class="dc"><button class="db" onclick="adjDur('short',-1)">−</button><span id="d-short">5m</span><button class="db" onclick="adjDur('short',1)">+</button></div></div>
+            <div class="srow"><span>Long break</span>    <div class="dc"><button class="db" onclick="adjDur('long',-5)">−</button><span id="d-long">15m</span><button class="db" onclick="adjDur('long',5)">+</button></div></div>
+            <div class="srow"><span><i class="ti ti-bell"></i> Bell sound</span>    <label class="tog"><input type="checkbox" id="snd" checked/><span class="tsl"></span></label></div>
+            <div class="srow"><span><i class="ti ti-clock"></i> Tick sound</span>  <label class="tog"><input type="checkbox" id="tick"/><span class="tsl"></span></label></div>
+            <div class="srow"><span><i class="ti ti-player-play"></i> Auto-start</span><label class="tog"><input type="checkbox" id="auto"/><span class="tsl"></span></label></div>
           </div>
         </div>
       </div>
     </div>
-  </div>
-</section>
-<div class="glow-div"></div>
 
-<!-- ══════════ VIRTUAL LAB ══════════ -->
-<section id="lab-sec" class="sec">
-  <div class="sec-inner">
-    <div class="sec-eye"><span class="eye-ln"></span>Interactive</div>
-    <div class="sec-title reveal">Virtual Circuit <span class="acc">Lab</span></div>
-    <div class="lab-wrap">
-      <!-- Components Sidebar -->
-      <div class="lab-sidebar">
-        <div class="lab-sb-head">🔧 Components</div>
-        <div class="comp-list">
-          <div class="comp-item" draggable="true" data-type="battery" ondragstart="dragStart(event)">
-            <div class="comp-ico" style="background:rgba(251,191,36,.12);border:1px solid rgba(251,191,36,.2)">🔋</div>
-            <div><div class="comp-lbl">Battery</div><div class="comp-sub">EMF source</div></div>
+    <!-- SLEEP — uses number inputs for H and M, NO type="time" -->
+    <div id="page-sleep" class="page">
+      <div class="page-hd"><h1><i class="ti ti-moon ics blue"></i> Sleep Tracker</h1></div>
+      <div class="g2">
+        <div class="card">
+          <div class="card-hd"><span class="ctitle">Log sleep</span></div>
+
+          <div class="fld">
+            <label>Bedtime</label>
+            <div class="time-row">
+              <input type="number" class="time-h" id="bed-h" min="0" max="23" placeholder="HH"/>
+              <span class="time-sep">:</span>
+              <input type="number" class="time-m" id="bed-m" min="0" max="59" placeholder="MM"/>
+              <span class="time-hint">hour : min</span>
+            </div>
           </div>
-          <div class="comp-item" draggable="true" data-type="resistor" ondragstart="dragStart(event)">
-            <div class="comp-ico" style="background:rgba(139,92,246,.12);border:1px solid var(--border2)">⬜</div>
-            <div><div class="comp-lbl">Resistor</div><div class="comp-sub">Fixed resistance</div></div>
+
+          <div class="fld">
+            <label>Wake-up time</label>
+            <div class="time-row">
+              <input type="number" class="time-h" id="wake-h" min="0" max="23" placeholder="HH"/>
+              <span class="time-sep">:</span>
+              <input type="number" class="time-m" id="wake-m" min="0" max="59" placeholder="MM"/>
+              <span class="time-hint">hour : min</span>
+            </div>
           </div>
-          <div class="comp-item" draggable="true" data-type="variable" ondragstart="dragStart(event)">
-            <div class="comp-ico" style="background:rgba(103,232,249,.1);border:1px solid rgba(103,232,249,.2)">🎚️</div>
-            <div><div class="comp-lbl">Variable R</div><div class="comp-sub">Rheostat</div></div>
+
+          <div class="fld">
+            <label>Date</label>
+            <input type="date" class="inp" id="sl-date"/>
           </div>
-          <div class="comp-item" draggable="true" data-type="switch" ondragstart="dragStart(event)">
-            <div class="comp-ico" style="background:rgba(52,211,153,.1);border:1px solid rgba(52,211,153,.2)">🔌</div>
-            <div><div class="comp-lbl">Switch</div><div class="comp-sub">Open / Closed</div></div>
+
+          <div class="fld">
+            <label>Sleep quality</label>
+            <div class="stars" id="sl-stars">
+              <i class="ti ti-star" onclick="setStar(1)"></i>
+              <i class="ti ti-star" onclick="setStar(2)"></i>
+              <i class="ti ti-star" onclick="setStar(3)"></i>
+              <i class="ti ti-star" onclick="setStar(4)"></i>
+              <i class="ti ti-star" onclick="setStar(5)"></i>
+            </div>
           </div>
-          <div class="comp-item" draggable="true" data-type="ammeter" ondragstart="dragStart(event)">
-            <div class="comp-ico" style="background:rgba(248,113,113,.1);border:1px solid rgba(248,113,113,.2)">🅐</div>
-            <div><div class="comp-lbl">Ammeter</div><div class="comp-sub">Current meter</div></div>
-          </div>
-          <div class="comp-item" draggable="true" data-type="voltmeter" ondragstart="dragStart(event)">
-            <div class="comp-ico" style="background:rgba(232,121,249,.1);border:1px solid rgba(232,121,249,.2)">🅥</div>
-            <div><div class="comp-lbl">Voltmeter</div><div class="comp-sub">Voltage meter</div></div>
-          </div>
-          <div class="comp-item" draggable="true" data-type="lamp" ondragstart="dragStart(event)">
-            <div class="comp-ico" style="background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.2)">💡</div>
-            <div><div class="comp-lbl">Lamp</div><div class="comp-sub">Light bulb</div></div>
-          </div>
-          <div class="comp-item" draggable="true" data-type="capacitor" ondragstart="dragStart(event)">
-            <div class="comp-ico" style="background:rgba(103,232,249,.1);border:1px solid rgba(103,232,249,.2)">⚡</div>
-            <div><div class="comp-lbl">Capacitor</div><div class="comp-sub">Charge storage</div></div>
-          </div>
-          <div class="comp-item" draggable="true" data-type="coil" ondragstart="dragStart(event)">
-            <div class="comp-ico" style="background:rgba(139,92,246,.12);border:1px solid var(--border2)">〰️</div>
-            <div><div class="comp-lbl">Coil / Inductor</div><div class="comp-sub">Self-induction</div></div>
-          </div>
-          <div class="comp-item" draggable="true" data-type="galv" ondragstart="dragStart(event)">
-            <div class="comp-ico" style="background:rgba(52,211,153,.1);border:1px solid rgba(52,211,153,.2)">🅖</div>
-            <div><div class="comp-lbl">Galvanometer</div><div class="comp-sub">Sensitive meter</div></div>
-          </div>
-          <div class="comp-item" draggable="true" data-type="wire" ondragstart="dragStart(event)">
-            <div class="comp-ico" style="background:rgba(167,139,250,.1);border:1px solid rgba(167,139,250,.2)">➖</div>
-            <div><div class="comp-lbl">Wire Node</div><div class="comp-sub">Junction point</div></div>
-          </div>
+
+          <div class="fld"><label>Notes (optional)</label><input type="text" class="inp" id="sl-note" placeholder="e.g. woke up refreshed"/></div>
+          <button class="btn-primary mt1" onclick="logSleep()"><i class="ti ti-check"></i> Save sleep log</button>
         </div>
-        <!-- Quick Presets -->
-        <div style="padding:.75rem;border-top:1px solid var(--border)">
-          <div style="font-size:.65rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted2);margin-bottom:.6rem">Quick Presets</div>
-          <button class="preset-btn" onclick="loadPreset('series')" style="width:100%;margin-bottom:.4rem;text-align:left">▶ Series Circuit</button>
-          <button class="preset-btn" onclick="loadPreset('parallel')" style="width:100%;margin-bottom:.4rem;text-align:left">▶ Parallel Circuit</button>
-          <button class="preset-btn" onclick="loadPreset('mixed')" style="width:100%;margin-bottom:.4rem;text-align:left">▶ Mixed Circuit</button>
-          <button class="preset-btn" onclick="loadPreset('wheatstone')" style="width:100%;text-align:left">▶ Wheatstone Bridge</button>
+
+        <div class="card">
+          <div class="card-hd"><span class="ctitle">Sleep stats</span></div>
+          <div class="ss-grid">
+            <div class="ss blue">  <div class="ssv" id="ss-avg">—</div><div class="ssl">Avg hours</div></div>
+            <div class="ss green"> <div class="ssv" id="ss-best">—</div><div class="ssl">Best night</div></div>
+            <div class="ss purple"><div class="ssv" id="ss-qual">—</div><div class="ssl">Avg quality</div></div>
+            <div class="ss amber"> <div class="ssv" id="ss-days">0</div> <div class="ssl">Nights logged</div></div>
+          </div>
+          <canvas id="c-sleep-pg" height="120" style="margin-top:1rem"></canvas>
         </div>
       </div>
-      <!-- Canvas -->
-      <div class="lab-canvas-wrap">
-        <div class="lab-toolbar">
-          <button class="lab-btn" onclick="calculateCircuit()">▶ Analyse Circuit</button>
-          <button class="lab-btn" onclick="toggleMode('wire')">🔗 Wire Mode</button>
-          <button class="lab-btn" onclick="toggleMode('select')">↖ Select</button>
-          <button class="lab-btn" onclick="clearWires()">✂ Clear Wires</button>
-          <button class="lab-btn danger" onclick="clearAll()">🗑 Clear All</button>
-          <span style="flex:1"></span>
-          <span id="mode-ind" style="font-size:.7rem;color:var(--muted);font-family:var(--fm)">Mode: SELECT</span>
-        </div>
-        <div id="lab-canvas" ondragover="ev=>ev.preventDefault()" ondrop="dropComp(event)" onclick="canvasClick(event)">
-          <svg class="wire-svg" id="wireSvg"></svg>
-          <div class="drop-hint" id="dropHint">
-            <div class="drop-hint-ico">⚗️</div>
-            <p>Drag components here<br>to build your circuit</p>
-          </div>
-        </div>
-      </div>
-      <!-- Info Panel -->
-      <div class="lab-info">
-        <div class="lab-info-head">📊 Circuit Analysis</div>
-        <div class="lab-info-body">
-          <div class="info-metric">
-            <div class="info-lbl">Total Resistance</div>
-            <div class="info-val" id="inf-R">—<span class="info-unit">Ω</span></div>
-            <div class="info-bar"><div class="info-bar-fill" id="bar-R"></div></div>
-          </div>
-          <div class="info-metric">
-            <div class="info-lbl">Total EMF</div>
-            <div class="info-val" id="inf-V">—<span class="info-unit">V</span></div>
-            <div class="info-bar"><div class="info-bar-fill" id="bar-V" style="background:linear-gradient(90deg,var(--gold),var(--pink))"></div></div>
-          </div>
-          <div class="info-metric">
-            <div class="info-lbl">Circuit Current</div>
-            <div class="info-val" id="inf-I">—<span class="info-unit">A</span></div>
-            <div class="info-bar"><div class="info-bar-fill" id="bar-I" style="background:linear-gradient(90deg,var(--cyan),var(--green))"></div></div>
-          </div>
-          <div class="info-metric">
-            <div class="info-lbl">Total Power</div>
-            <div class="info-val" id="inf-P">—<span class="info-unit">W</span></div>
-            <div class="info-bar"><div class="info-bar-fill" id="bar-P" style="background:linear-gradient(90deg,var(--green),var(--cyan))"></div></div>
-          </div>
-          <div class="info-metric">
-            <div class="info-lbl">Circuit Type</div>
-            <div class="info-val" id="inf-type" style="font-size:.9rem">—</div>
-          </div>
-          <div class="info-metric" id="comp-breakdown">
-            <div class="info-lbl">Component Breakdown</div>
-            <div id="inf-breakdown" style="font-size:.75rem;color:var(--muted);line-height:1.9;font-family:var(--fm)">No components placed</div>
-          </div>
-        </div>
-        <div class="lab-log" id="labLog">
-          <span class="log-entry">⚗️ Virtual Lab ready — drag components to start</span>
+      <div class="card mt1"><div class="card-hd"><span class="ctitle">Sleep history</span></div><div id="sleep-hist" class="log-wrap"></div></div>
+    </div>
+
+    <!-- HABITS -->
+    <div id="page-habits" class="page">
+      <div class="page-hd"><h1><i class="ti ti-heart ics green"></i> Habits</h1><button class="btn-sec" onclick="openHM()"><i class="ti ti-plus"></i> New habit</button></div>
+      <div class="card mb1"><div class="card-hd"><span class="ctitle">Today — <span id="hd-today"></span></span></div><div id="habits-today"></div></div>
+      <div class="card"><div class="card-hd"><span class="ctitle">7-day overview</span></div><div id="habits-week"></div></div>
+      <div id="h-modal" class="modal-bg" style="display:none">
+        <div class="modal-box">
+          <div class="modal-hd"><span>New habit</span><button onclick="closeHM()"><i class="ti ti-x"></i></button></div>
+          <label>Name</label><input type="text" class="inp" id="h-name" placeholder="e.g. Read 30 min"/>
+          <label>Emoji</label><input type="text" class="inp" id="h-emoji" placeholder="📚" maxlength="2"/>
+          <label>Category</label>
+          <select class="inp" id="h-cat">
+            <option value="study">📖 Study</option><option value="health">🏃 Health</option>
+            <option value="mind">🧘 Mindfulness</option><option value="exercise">💪 Exercise</option><option value="other">✨ Other</option>
+          </select>
+          <button class="btn-primary" onclick="saveHabit()" style="margin-top:1rem"><i class="ti ti-plus"></i> Add habit</button>
         </div>
       </div>
     </div>
-  </div>
-</section>
-<div class="glow-div"></div>
 
-<!-- FOOTER -->
-<footer>
-  <div class="footer-grid">
-    <div class="footer-brand">
-      <div class="footer-logo"><div class="logo-ico">⚛</div>PhysicsLab Pro</div>
-      <p>A complete physics study platform with formulas, professional calculator, interactive virtual lab, and unit converters. Built for secondary school excellence.</p>
+    <!-- WATER -->
+    <div id="page-water" class="page">
+      <div class="page-hd"><h1><i class="ti ti-droplet ics cyan"></i> Water Tracker</h1></div>
+      <div class="g2">
+        <div class="card" style="text-align:center">
+          <div class="wg-lbl">Daily goal: <span id="w-goal-lbl">8 glasses</span></div>
+          <div class="wr-wrap">
+            <svg viewBox="0 0 200 200" class="wr-svg">
+              <circle class="wr-bg" cx="100" cy="100" r="85"/>
+              <circle id="wr-fg" class="wr-fg" cx="100" cy="100" r="85"/>
+            </svg>
+            <div class="wr-ctr"><div class="wr-num" id="w-count">0</div><div class="wr-sub">glasses</div></div>
+          </div>
+          <div class="w-cups" id="w-cups"></div>
+          <div class="w-btns">
+            <button class="w-add" onclick="addWater()"><i class="ti ti-plus"></i> Add glass</button>
+            <button class="w-rem" onclick="removeWater()"><i class="ti ti-minus"></i></button>
+          </div>
+          <div class="srow mt1"><span>Daily goal</span><div class="dc"><button class="db" onclick="adjWGoal(-1)">−</button><span id="w-goal-n">8</span><button class="db" onclick="adjWGoal(1)">+</button></div></div>
+        </div>
+        <div class="card">
+          <div class="card-hd"><span class="ctitle">Weekly water intake</span></div>
+          <canvas id="c-water" height="200"></canvas>
+          <div class="w-stats mt1">
+            <div class="wsi"><div class="wsv" id="wst-avg">0</div><div class="wsl">Avg/day</div></div>
+            <div class="wsi"><div class="wsv" id="wst-best">0</div><div class="wsl">Best day</div></div>
+            <div class="wsi"><div class="wsv" id="wst-str">0</div><div class="wsl">Goal streak</div></div>
+          </div>
+        </div>
+      </div>
     </div>
-    <div class="footer-col">
-      <h4>Student</h4>
-      <p style="color:var(--white);font-weight:500">Omar Mohamed Ismail</p>
-      <a href="https://github.com/omarmohamedismail" target="_blank" class="gh-link">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
-        omarmohamedismail
-      </a>
+
+    <!-- NOTES -->
+    <div id="page-notes" class="page">
+      <div class="page-hd"><h1><i class="ti ti-notes ics amber"></i> Study Notes</h1><button class="btn-sec" onclick="newNote()"><i class="ti ti-plus"></i> New note</button></div>
+      <div class="notes-layout">
+        <div class="notes-list card" id="notes-list"></div>
+        <div class="note-editor card">
+          <div class="ne-hd">
+            <input type="text" class="ne-title" id="note-title" placeholder="Note title…"/>
+            <div class="ne-acts">
+              <button class="btn-icon-sm" onclick="saveNote()"><i class="ti ti-device-floppy"></i> Save</button>
+              <button class="btn-icon-sm danger" onclick="deleteNote()"><i class="ti ti-trash"></i></button>
+            </div>
+          </div>
+          <input type="text" class="ne-tags" id="note-tags" placeholder="Tags: math, physics…"/>
+          <textarea class="ne-body" id="note-body" placeholder="Start writing your study notes…"></textarea>
+        </div>
+      </div>
     </div>
-    <div class="footer-col">
-      <h4>Teacher</h4>
-      <p style="color:var(--white);font-weight:500">Mr. Mohamed Akle</p>
-      <p>Physics Instructor</p>
-      <p>Year 2026</p>
+
+    <!-- ANALYTICS -->
+    <div id="page-analytics" class="page">
+      <div class="page-hd"><h1><i class="ti ti-chart-line ics coral"></i> Analytics</h1></div>
+      <div class="kpi-row">
+        <div class="kpi purple"><i class="ti ti-clock"></i>   <div class="kpi-val" id="an-focus">0h</div><div class="kpi-lbl">Total focus</div></div>
+        <div class="kpi blue">  <i class="ti ti-moon"></i>    <div class="kpi-val" id="an-sleep">—</div>  <div class="kpi-lbl">Avg sleep</div></div>
+        <div class="kpi amber"> <i class="ti ti-trophy"></i>  <div class="kpi-val" id="an-best">—</div>   <div class="kpi-lbl">Best focus day</div></div>
+        <div class="kpi green"> <i class="ti ti-calendar"></i><div class="kpi-val" id="an-days">0</div>   <div class="kpi-lbl">Days tracked</div></div>
+      </div>
+      <div class="card mt1"><div class="card-hd"><span class="ctitle"><i class="ti ti-clock ics purple"></i> Focus — last 14 days</span></div><canvas id="c-an14" height="180"></canvas></div>
+      <div class="g2 mt1">
+        <div class="card"><div class="card-hd"><span class="ctitle"><i class="ti ti-chart-pie ics amber"></i> Daily time split</span></div><canvas id="c-pie" height="200"></canvas></div>
+        <div class="card"><div class="card-hd"><span class="ctitle"><i class="ti ti-chart-dots ics coral"></i> Sleep vs Focus</span></div><canvas id="c-scat" height="200"></canvas></div>
+      </div>
+      <div class="card mt1"><div class="card-hd"><span class="ctitle"><i class="ti ti-list ics green"></i> Full log</span></div><div id="an-log" class="log-wrap"></div></div>
     </div>
-    <div class="footer-col">
-      <h4>Sections</h4>
-      <a href="#formulas">60+ Formulas</a>
-      <a href="#calc-sec">Pro Calculator</a>
-      <a href="#lab-sec">Virtual Lab</a>
-      <a href="https://github.com/omarmohamedismail" target="_blank">GitHub Profile</a>
+
+    <!-- PROFILE -->
+    <div id="page-profile" class="page">
+      <div class="page-hd"><h1><i class="ti ti-user ics pink"></i> Profile</h1></div>
+      <div class="profile-layout">
+        <div class="card profile-card">
+          <div class="av-wrap">
+            <div class="av av-xl" id="pr-av"></div>
+            <label class="av-cam" for="av-file"><i class="ti ti-camera"></i></label>
+            <input type="file" id="av-file" accept="image/*" onchange="uploadAv(this)" style="display:none"/>
+          </div>
+          <div class="pr-name"   id="pr-name"></div>
+          <div class="pr-email"  id="pr-email"></div>
+          <div class="pr-badges" id="pr-badges"></div>
+          <div class="pr-joined" id="pr-joined"></div>
+        </div>
+        <div class="profile-right">
+          <div class="card mb1">
+            <div class="card-hd"><span class="ctitle"><i class="ti ti-edit ics purple"></i> Edit profile</span></div>
+            <label>Full name</label><input type="text" class="inp" id="pe-name"/>
+            <label>Bio</label><textarea class="inp" id="pe-bio" rows="2" placeholder="Tell us about yourself…"></textarea>
+            <label>Focus goal (min/day)</label><input type="number" class="inp" id="pe-goal"/>
+            <label>Sleep goal (hours/night)</label><input type="number" class="inp" id="pe-sg" step="0.5"/>
+            <button class="btn-primary mt1" onclick="saveProfile()"><i class="ti ti-check"></i> Save changes</button>
+          </div>
+          <div class="card"><div class="card-hd"><span class="ctitle"><i class="ti ti-trophy ics amber"></i> Achievements</span></div><div id="ach-grid" class="ach-grid"></div></div>
+        </div>
+      </div>
     </div>
-  </div>
-  <div class="footer-bot">
-    <p>© 2026 Omar Mohamed Ismail · PhysicsLab Pro</p>
-    <p>Taught by Mr. Mohamed Akle · All rights reserved</p>
-  </div>
-</footer>
-</div><!-- wrap -->
-<button id="btt" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑</button>
 
-<script>
-// ════════════════════════════════════════════
-// CURSOR
-// ════════════════════════════════════════════
-const cur=document.getElementById('cur'),cr=document.getElementById('cur-r');
-let mx=0,my=0,rx=0,ry=0;
-document.addEventListener('mousemove',e=>{mx=e.clientX;my=e.clientY;cur.style.left=mx+'px';cur.style.top=my+'px'});
-(function animR(){rx+=(mx-rx)*.12;ry+=(my-ry)*.12;cr.style.left=rx+'px';cr.style.top=ry+'px';requestAnimationFrame(animR)})();
-document.querySelectorAll('a,button,.comp-item,.fc,.f-tab').forEach(el=>{
-  el.addEventListener('mouseenter',()=>{cr.style.width='50px';cr.style.height='50px';cr.style.opacity='.3';cur.style.transform='translate(-50%,-50%) scale(1.5)'});
-  el.addEventListener('mouseleave',()=>{cr.style.width='32px';cr.style.height='32px';cr.style.opacity='.55';cur.style.transform='translate(-50%,-50%) scale(1)'});
-});
+  </main>
 
-// ════════════════════════════════════════════
-// PROGRESS & BACK TO TOP
-// ════════════════════════════════════════════
-const pb=document.getElementById('prog-bar'),btt=document.getElementById('btt');
-window.addEventListener('scroll',()=>{
-  pb.style.width=(window.scrollY/(document.body.scrollHeight-window.innerHeight)*100)+'%';
-  btt.style.display=window.scrollY>400?'flex':'none';
-},{passive:true});
+  <!-- BOTTOM NAV (mobile) -->
+  <nav id="bnav">
+    <button class="bn active" data-p="dashboard" onclick="navigate('dashboard')"><i class="ti ti-layout-dashboard"></i><span>Home</span></button>
+    <button class="bn" data-p="timer"   onclick="navigate('timer')">  <i class="ti ti-clock"></i><span>Timer</span></button>
+    <button class="bn" data-p="sleep"   onclick="navigate('sleep')">  <i class="ti ti-moon"></i><span>Sleep</span></button>
+    <button class="bn" data-p="habits"  onclick="navigate('habits')"> <i class="ti ti-heart"></i><span>Habits</span></button>
+    <button class="bn" data-p="profile" onclick="navigate('profile')"><i class="ti ti-user"></i><span>Profile</span></button>
+  </nav>
 
-// ════════════════════════════════════════════
-// REVEAL ON SCROLL
-// ════════════════════════════════════════════
-const obs=new IntersectionObserver(e=>e.forEach(x=>{if(x.isIntersecting){x.target.classList.add('revealed');obs.unobserve(x.target)}}),{threshold:.08,rootMargin:'0px 0px -30px 0px'});
-document.querySelectorAll('.reveal').forEach((el,i)=>{el.style.transitionDelay=(i%5)*.08+'s';obs.observe(el)});
+</div>
 
-// ════════════════════════════════════════════
-// HERO COUNTER
-// ════════════════════════════════════════════
-const cntObs=new IntersectionObserver(e=>e.forEach(x=>{
-  if(x.isIntersecting){
-    const el=x.target,t=+el.dataset.target,suf=el.dataset.suf||'';
-    let s=0;const iv=setInterval(()=>{s+=t/50;if(s>=t){el.textContent=t+suf;clearInterval(iv)}else el.textContent=Math.floor(s)+suf},25);
-    cntObs.unobserve(el);
-  }
-}),{threshold:.5});
-document.querySelectorAll('[data-target]').forEach(el=>cntObs.observe(el));
-
-// ════════════════════════════════════════════
-// FORMULAS DATA
-// ════════════════════════════════════════════
-const FORMULAS=[
-  // CH1
-  {cat:'ch1',label:'Electric Current',eq:'I = Q / t',desc:'Charge passed per unit time. Also I = N·e/t (electrons).',unit:'Ampere (A) = C/s'},
-  {cat:'ch1',label:'Current — Electrons',eq:'I = N·e / t',desc:'N = number of electrons, e = 1.6×10⁻¹⁹ C.',unit:'Ampere (A)'},
-  {cat:'ch1',label:'Potential Difference',eq:'V = W / Q',desc:'Work done to transfer 1 Coulomb between two points.',unit:'Volt (V) = J/C'},
-  {cat:'ch1',label:"Ohm's Law",eq:'V = I × R',desc:'At constant temperature, current proportional to voltage.',unit:'V, A, Ω'},
-  {cat:'ch1',label:'Resistance',eq:'R = V / I',desc:'Ratio of voltage to current. Unit: Ohm (Ω).',unit:'Ohm (Ω)'},
-  {cat:'ch1',label:'Resistivity',eq:'R = ρₑ · l / A',desc:'ρₑ = resistivity, l = length, A = cross-sectional area.',unit:'Ω (ρₑ in Ω·m)'},
-  {cat:'ch1',label:'Conductivity',eq:'σ = 1 / ρₑ = l / (RA)',desc:'Inverse of resistivity. Material conduction ability.',unit:'Ω⁻¹·m⁻¹'},
-  {cat:'ch1',label:'Wire Reshaping — l',eq:'R₁/R₂ = l₁²/l₂²',desc:'Volume conserved when wire stretched. l₁A₁ = l₂A₂.',unit:'dimensionless ratio'},
-  {cat:'ch1',label:'Wire Reshaping — r',eq:'R₁/R₂ = r₂⁴/r₁⁴',desc:'Radius version of reshaping formula.',unit:'dimensionless ratio'},
-  {cat:'ch1',label:'Series Resistance',eq:'Rₑq = R₁+R₂+R₃',desc:'All resistors carry same current. Voltage divides.',unit:'Ohm (Ω)'},
-  {cat:'ch1',label:'Parallel Resistance',eq:'1/Rₑq = 1/R₁+1/R₂+1/R₃',desc:'All resistors have same voltage. Current divides.',unit:'Ohm (Ω)'},
-  {cat:'ch1',label:'Two Parallel R',eq:'Rₑq = R₁R₂/(R₁+R₂)',desc:'Product over sum shortcut for exactly two resistors.',unit:'Ohm (Ω)'},
-  {cat:'ch1',label:'Equal n Resistors — Series',eq:'Rₑq = n·R',desc:'n identical resistors in series.',unit:'Ohm (Ω)'},
-  {cat:'ch1',label:'Equal n Resistors — Parallel',eq:'Rₑq = R/n',desc:'n identical resistors in parallel.',unit:'Ohm (Ω)'},
-  {cat:'ch1',label:'Voltage Divider',eq:'V₁/V₂ = R₁/R₂',desc:'Series: voltage proportional to resistance.',unit:'V'},
-  {cat:'ch1',label:'Current Divider',eq:'I₁/I₂ = R₂/R₁',desc:'Parallel: current inversely proportional to resistance.',unit:'A'},
-  {cat:'ch1',label:'Electric Power',eq:'P = IV = I²R = V²/R',desc:'Rate of energy dissipation. Three equivalent forms.',unit:'Watt (W) = J/s'},
-  {cat:'ch1',label:'Electric Energy',eq:'E = Pt = QV = I²Rt = V²t/R',desc:'Energy consumed over time t.',unit:'Joule (J)'},
-  {cat:'ch1',label:'EMF — Closed Circuit',eq:'V_B = I(Rₜ + r)',desc:'Total EMF equals current times total resistance (external + internal).',unit:'Volt (V)'},
-  {cat:'ch1',label:'Terminal Voltage — Discharge',eq:'V = V_B − I·r',desc:'Terminal voltage less than EMF. Graph slope = −r.',unit:'Volt (V)'},
-  {cat:'ch1',label:'Terminal Voltage — Charge',eq:'V = V_B + I·r',desc:'Terminal voltage greater than EMF when charging.',unit:'Volt (V)'},
-  {cat:'ch1',label:'Two Batteries — Aiding',eq:'I = (V_B1+V_B2)/(R+r₁+r₂)',desc:'EMFs add when batteries in same direction.',unit:'Ampere (A)'},
-  {cat:'ch1',label:'Two Batteries — Opposing',eq:'I = (V_B1−V_B2)/(R+r₁+r₂)',desc:'Net EMF is difference. Larger battery is source.',unit:'Ampere (A)'},
-  {cat:'ch1',label:'Ratio Method — Resistors',eq:'R₁/R₂ = ρₑ1·l₁·A₂ / (ρₑ2·l₂·A₁)',desc:'Compare two wires with any combination of properties.',unit:'dimensionless'},
-  // CH2
-  {cat:'ch2',label:'Magnetic Flux',eq:'φₘ = B·A·cosθ',desc:'Field lines through area A. θ between normal to coil and B.',unit:'Weber (Wb) = T·m²'},
-  {cat:'ch2',label:'Field — Straight Wire',eq:'B = μI/(2πd)',desc:'Concentric circles. Density decreases with distance d from axis.',unit:'Tesla (T)'},
-  {cat:'ch2',label:'Field — Circular Coil Centre',eq:'B = μIN/(2r)',desc:'At centre. Ring/loop N=1. Part of loop: N=θ/360°.',unit:'Tesla (T)'},
-  {cat:'ch2',label:'Field — Solenoid',eq:'B = μIN/l = μIn',desc:'Uniform at mid-axis. n = N/l turns per unit length.',unit:'Tesla (T)'},
-  {cat:'ch2',label:'Permeability',eq:'μ = μ₀·μᵣ',desc:'μ₀ = 4π×10⁻⁷ T·m/A (free space). μᵣ = relative permeability.',unit:'T·m/A'},
-  {cat:'ch2',label:'Resultant — Perpendicular Fields',eq:'Bₜ = √(B₁²+B₂²)',desc:'When two B fields are perpendicular to each other.',unit:'Tesla (T)'},
-  {cat:'ch2',label:'Neutral Point Condition',eq:'B_total = 0 → B₁ = B₂ (opposite)',desc:'Fields cancel. Used for two parallel wires or magnet + wire.',unit:'Tesla (T)'},
-  {cat:'ch2',label:'Force on Wire',eq:'F = BIl·sinθ',desc:'θ = angle between wire and B lines. Direction: Fleming Left.',unit:'Newton (N)'},
-  {cat:'ch2',label:'Force Per Unit Length',eq:'F/l = BI·sinθ',desc:'Force on 1 metre of conductor in field B.',unit:'N/m'},
-  {cat:'ch2',label:'Wire Equilibrium',eq:'BIl = mg = ρAl·g',desc:'Magnetic upward force equals gravitational downward force.',unit:'Newton (N)'},
-  {cat:'ch2',label:'Force Between Two Wires',eq:'F = μI₁I₂l/(2πd)',desc:'Same direction → attraction. Opposite → repulsion.',unit:'Newton (N)'},
-  {cat:'ch2',label:'Magnetic Torque',eq:'τ = BIANsinθ',desc:'τ_max when coil ∥ field (θ=90°). τ=0 when coil ⊥ field.',unit:'N·m'},
-  {cat:'ch2',label:'Magnetic Dipole Moment',eq:'|m⃗d| = IAN',desc:'Does NOT depend on angle. Direction by right-hand screw.',unit:'A·m²'},
-  {cat:'ch2',label:'Wire Recoiled — N turns',eq:'N = l_wire/(2πr_coil)',desc:'Number of turns when wire of length l wound into coil.',unit:'dimensionless'},
-  {cat:'ch2',label:'Coil Recoiled',eq:'N₁/N₂ = r₂/r₁',desc:'If wire length constant, turns inversely proportional to radius.',unit:'dimensionless'},
-  // INSTRUMENTS
-  {cat:'inst',label:'Galvanometer Sensitivity',eq:'S = θ/I',desc:'Deflection per unit current. Constant for same device.',unit:'°/A or div/A'},
-  {cat:'inst',label:'Ammeter — Shunt',eq:'Rₛ = IgRg/(I−Ig)',desc:'Small R in parallel. V_s = V_g → (I−Ig)Rₛ = IgRg.',unit:'Ohm (Ω)'},
-  {cat:'inst',label:'Ammeter — Fraction',eq:'Ig/I = Rₛ/(Rₛ+Rg)',desc:'Fraction of total current through galvanometer.',unit:'dimensionless'},
-  {cat:'inst',label:'Voltmeter — Multiplier',eq:'Rₘ = (V−Vg)/Ig',desc:'Large R in series. V = Ig(Rg+Rₘ). Max V measurable.',unit:'Ohm (Ω)'},
-  {cat:'inst',label:'Voltmeter — Ratio',eq:'V₁/V₂ = (Rg+Rₘ1)/(Rg+Rₘ2)',desc:'Ratio of voltages with two different multiplier resistors.',unit:'dimensionless'},
-  {cat:'inst',label:'Ohmmeter',eq:'I = V_B/(R₀+Rₓ)',desc:'Ig = V_B/R₀ before Rₓ. I·R₀ = Ig(R₀+Rₓ). Scale reversed.',unit:'A'},
-  {cat:'inst',label:'Ohmmeter — Ratio',eq:'Ig/I = (R₀+Rₓ)/R₀',desc:'Mid-scale when Rₓ = R₀. Non-uniform scale.',unit:'dimensionless'},
-  {cat:'inst',label:'Galvanometer Max I',eq:'Ig = divisions × sensitivity',desc:'Full-scale deflection current.',unit:'Ampere (A)'},
-  // CH3
-  {cat:'ch3',label:"Faraday's Law",eq:'emf = −N·ΔΦₘ/Δt',desc:'Slope of φₘ–t graph = −emf/N. Negative sign = Lenz.',unit:'Volt (V)'},
-  {cat:'ch3',label:'emf via Charge',eq:'emf = QR/t = NeR/t',desc:'When charge and resistance known instead of flux.',unit:'Volt (V)'},
-  {cat:'ch3',label:'emf — Straight Wire',eq:'emf = B·l·v·sinθ',desc:'θ between wire direction and B. Direction: Fleming Right.',unit:'Volt (V)'},
-  {cat:'ch3',label:'Induced Current',eq:'I_ind = emf/R',desc:'If circuit is closed with resistance R.',unit:'Ampere (A)'},
-  {cat:'ch3',label:'Charge Transferred',eq:'Q = NΔΦₘ/R',desc:'Total charge in closed circuit from flux change.',unit:'Coulomb (C)'},
-  {cat:'ch3',label:'Flux in Coil Rotation',eq:'ΔΦₘ = BA·(cosθ₂−cosθ₁)',desc:'Change in flux as coil rotates from θ₁ to θ₂.',unit:'Weber (Wb)'},
-  {cat:'ch3',label:'eddy Current Reduction',eq:'laminated sheets ∥ to B',desc:'Divide core into thin insulated sheets parallel to B field.',unit:'qualitative'},
-  {cat:'ch3',label:'Mutual Inductance',eq:'emf_s = −M·ΔIₚ/Δt',desc:'emf in secondary from change in primary current.',unit:'Volt (V)'},
-  {cat:'ch3',label:'Mutual Inductance M',eq:'M = μ·A·Nₚ·Nₛ/lₚ',desc:'Depends on geometry, permeability, number of turns.',unit:'Henry (H)'},
-  {cat:'ch3',label:'Mutual Inductance — relation',eq:'M·ΔIₚ = Nₛ·ΔΦₘ',desc:'Links current change in primary to flux change in secondary.',unit:'H·A = Wb'},
-  {cat:'ch3',label:'Self-Inductance',eq:'emf = −L·ΔI/Δt',desc:'Back emf proportional to rate of current change.',unit:'Volt (V)'},
-  {cat:'ch3',label:'Self-Inductance L',eq:'L = μ·A·N²/l',desc:'Solenoid self-inductance. L·ΔI = N·ΔΦₘ.',unit:'Henry (H)'},
-  {cat:'ch3',label:'Self-Induction — Back EMF',eq:'emf_back = −L·ΔI/Δt',desc:'At closing switch: I=0, emf_back=max=V_B. At opening: large spark.',unit:'Volt (V)'},
-  {cat:'ch3',label:'Energy Stored in Inductor',eq:'E = ½·L·I²',desc:'Energy stored in magnetic field of inductor.',unit:'Joule (J)'},
-];
-
-function renderFormulas(filter='all'){
-  const grid=document.getElementById('fGrid');
-  const items=filter==='all'?FORMULAS:FORMULAS.filter(f=>f.cat===filter);
-  grid.innerHTML=items.map(f=>`
-    <div class="fc reveal" onclick="sendToCalc('${f.eq.replace(/'/g,"\\'")}')">
-      <div class="fc-cat">${f.cat.toUpperCase()} — ${f.label}</div>
-      <div class="fc-eq">${f.eq}</div>
-      <div class="fc-desc">${f.desc}</div>
-      <div class="fc-unit">Unit: ${f.unit} · click to use in calculator</div>
-    </div>`).join('');
-  grid.querySelectorAll('.reveal').forEach((el,i)=>{el.style.transitionDelay=(i%6)*.06+'s';obs.observe(el)});
-}
-renderFormulas();
-function filterF(cat,btn){
-  document.querySelectorAll('.f-tab').forEach(b=>b.classList.remove('on'));
-  btn.classList.add('on');
-  renderFormulas(cat);
-}
-
-// ════════════════════════════════════════════
-// SEARCH
-// ════════════════════════════════════════════
-const SEARCH_DATA = FORMULAS.map(f=>({
-  title:f.label,desc:f.eq+' — '+f.desc.slice(0,60),
-  href:f.cat==='ch1'?'#formulas':f.cat==='ch2'?'#formulas':'#formulas',
-  badge:f.cat.toUpperCase(),
-  color:f.cat==='ch1'?'rgba(139,92,246,.2)':f.cat==='ch2'?'rgba(103,232,249,.15)':f.cat==='ch3'?'rgba(232,121,249,.15)':'rgba(52,211,153,.15)'
-}));
-function openSearch(){document.getElementById('searchOv').classList.add('show');document.body.style.overflow='hidden';setTimeout(()=>document.getElementById('sInp').focus(),50)}
-function closeSearch(){document.getElementById('searchOv').classList.remove('show');document.body.style.overflow=''}
-document.getElementById('sInp').addEventListener('input',e=>{
-  const q=e.target.value.trim().toLowerCase();
-  const res=document.getElementById('sRes');
-  if(!q){res.innerHTML='';return}
-  const found=SEARCH_DATA.filter(d=>d.title.toLowerCase().includes(q)||d.desc.toLowerCase().includes(q)||d.badge.toLowerCase().includes(q));
-  res.innerHTML=!found.length?`<div style="padding:1.5rem;text-align:center;color:var(--muted);font-size:.85rem">No results for "${q}"</div>`:
-    found.slice(0,10).map(r=>`<a href="${r.href}" class="search-item" onclick="closeSearch()">
-      <div class="search-item-l"><div class="stitle">${r.title}</div><div class="sdesc">${r.desc}</div></div>
-      <span class="search-badge" style="background:${r.color};color:var(--white)">${r.badge}</span>
-    </a>`).join('');
-});
-document.getElementById('searchOv').addEventListener('click',e=>{if(e.target===document.getElementById('searchOv'))closeSearch()});
-document.addEventListener('keydown',e=>{
-  if(e.key==='Escape')closeSearch();
-  if((e.metaKey||e.ctrlKey)&&e.key==='k'){e.preventDefault();openSearch()}
-});
-function sendToCalc(eq){document.getElementById('cDisp').textContent=eq;document.getElementById('cExpr').textContent='Formula: '+eq;window.location.hash='#calc-sec'}
-
-// ════════════════════════════════════════════
-// CALCULATOR ENGINE
-// ════════════════════════════════════════════
-let expr='',isNewNum=true,mem=0,angleMode='deg',calcHistory=[];
-const CONSTS=[
-  {sym:'μ₀',val:'1.2566e-7',name:'Permeability of free space'},
-  {sym:'e',val:'1.602e-19',name:'Electron charge'},
-  {sym:'mₑ',val:'9.109e-31',name:'Electron mass (kg)'},
-  {sym:'g',val:'9.81',name:'Gravity (m/s²)'},
-  {sym:'c',val:'3e8',name:'Speed of light (m/s)'},
-  {sym:'h',val:'6.626e-34',name:'Planck constant (J·s)'},
-  {sym:'k',val:'1.381e-23',name:'Boltzmann constant'},
-  {sym:'N_A',val:'6.022e23',name:"Avogadro's number"},
-  {sym:'ε₀',val:'8.854e-12',name:'Permittivity of free space'},
-  {sym:'π',val:String(Math.PI),name:'Pi (3.14159…)'},
-];
-document.getElementById('constGrid').innerHTML=CONSTS.map(c=>`
-  <div class="const-item" onclick="injectConst('${c.val}','${c.sym}')">
-    <div class="const-sym">${c.sym}</div>
-    <div class="const-val">${parseFloat(c.val).toExponential(2)}</div>
-    <div class="const-name">${c.name.split(' ').slice(0,3).join(' ')}</div>
-  </div>`).join('');
-
-const BUTTONS=[
-  {l:'MC',cls:'fn',a:'MC'},{l:'MR',cls:'fn',a:'MR'},{l:'M+',cls:'fn',a:'MP'},{l:'M−',cls:'fn',a:'MM'},{l:'MS',cls:'fn',a:'MS'},
-  {l:'2ⁿᵈ',cls:'fn',a:'2ND'},{l:'sin',cls:'fn',a:'sin'},{l:'cos',cls:'fn',a:'cos'},{l:'tan',cls:'fn',a:'tan'},{l:'π',cls:'fn',a:'PI'},
-  {l:'x²',cls:'fn',a:'SQ'},{l:'x³',cls:'fn',a:'CUB'},{l:'√',cls:'fn',a:'SQRT'},{l:'∛',cls:'fn',a:'CBRT'},{l:'1/x',cls:'fn',a:'INV'},
-  {l:'%',cls:'fn',a:'PCT'},{l:'|x|',cls:'fn',a:'ABS'},{l:'log',cls:'fn',a:'LOG'},{l:'ln',cls:'fn',a:'LN'},{l:'eˣ',cls:'fn',a:'EXP'},
-  {l:'(',cls:'op',a:'('},{l:')',cls:'op',a:')'},{l:'xʸ',cls:'op',a:'POW'},{l:'DEL',cls:'clr',a:'DEL'},{l:'AC',cls:'clr',a:'AC'},
-  {l:'7',cls:'',a:'7'},{l:'8',cls:'',a:'8'},{l:'9',cls:'',a:'9'},{l:'÷',cls:'op',a:'/'},{l:'×',cls:'op',a:'*'},
-  {l:'4',cls:'',a:'4'},{l:'5',cls:'',a:'5'},{l:'6',cls:'',a:'6'},{l:'−',cls:'op',a:'-'},{l:'+',cls:'op',a:'+'},
-  {l:'1',cls:'',a:'1'},{l:'2',cls:'',a:'2'},{l:'3',cls:'',a:'3'},{l:'±',cls:'op',a:'NEG'},{l:'=',cls:'eq',a:'EQ'},
-  {l:'0',cls:'zero',a:'0'},{l:'.',cls:'',a:'.'},{l:'EE',cls:'fn',a:'EE'},
-];
-document.getElementById('cBtns').innerHTML=BUTTONS.map(b=>`<button class="cb ${b.cls}" onclick="calcAction('${b.a}')">${b.l}</button>`).join('');
-function setMode(m,el){angleMode=m;document.querySelectorAll('.mode-btn').forEach(b=>b.classList.remove('active'));el.classList.add('active')}
-function toRad(a){if(angleMode==='deg')return a*Math.PI/180;if(angleMode==='grad')return a*Math.PI/200;return a}
-let awaiting2nd=false;
-function calcAction(a){
-  const disp=document.getElementById('cDisp'),exprEl=document.getElementById('cExpr');
-  let cur=disp.textContent;
-  if(a==='AC'){expr='';disp.textContent='0';disp.classList.remove('err');exprEl.textContent='';isNewNum=true;return}
-  if(a==='DEL'){expr=expr.slice(0,-1)||'0';disp.textContent=expr||'0';return}
-  if(a==='MC'){mem=0;document.getElementById('mem-ind').style.display='none';return}
-  if(a==='MR'){expr=String(mem);disp.textContent=expr;isNewNum=false;return}
-  if(a==='MP'){mem+=parseFloat(cur)||0;document.getElementById('mem-ind').style.display='inline';return}
-  if(a==='MM'){mem-=parseFloat(cur)||0;document.getElementById('mem-ind').style.display='inline';return}
-  if(a==='MS'){mem=parseFloat(cur)||0;document.getElementById('mem-ind').style.display='inline';return}
-  if(a==='PI'){expr=String(Math.PI);disp.textContent=expr;isNewNum=false;return}
-  if(a==='NEG'){const v=parseFloat(cur);if(!isNaN(v)){expr=String(-v);disp.textContent=expr};return}
-  if(a==='PCT'){const v=parseFloat(cur);if(!isNaN(v)){expr=String(v/100);disp.textContent=expr};return}
-  if(a==='EE'){expr+='e';disp.textContent=expr;return}
-  if(a==='POW'){expr+='**';disp.textContent=expr;return}
-  if(['sin','cos','tan','LOG','LN','SQRT','CBRT','SQ','CUB','EXP','ABS','INV'].includes(a)){
-    const v=parseFloat(cur.replace(/[^0-9.\-e]/g,''));
-    if(isNaN(v)){disp.classList.add('err');disp.textContent='Error';setTimeout(()=>{disp.classList.remove('err');disp.textContent='0'},1500);return}
-    let res;
-    if(a==='sin')res=Math.sin(toRad(v));
-    else if(a==='cos')res=Math.cos(toRad(v));
-    else if(a==='tan')res=Math.tan(toRad(v));
-    else if(a==='LOG')res=Math.log10(v);
-    else if(a==='LN')res=Math.log(v);
-    else if(a==='SQRT')res=Math.sqrt(v);
-    else if(a==='CBRT')res=Math.cbrt(v);
-    else if(a==='SQ')res=v*v;
-    else if(a==='CUB')res=v*v*v;
-    else if(a==='EXP')res=Math.exp(v);
-    else if(a==='ABS')res=Math.abs(v);
-    else if(a==='INV')res=1/v;
-    exprEl.textContent=a+'('+v+') =';
-    expr=String(+res.toPrecision(10));disp.textContent=expr;isNewNum=true;return;
-  }
-  if(a==='EQ'){
-    try{
-      exprEl.textContent=expr+' =';
-      let r=Function('"use strict";return ('+expr+')')();
-      r=+r.toPrecision(12);
-      const resStr=r.toString();
-      calcHistory.unshift(expr+' = '+resStr);
-      if(calcHistory.length>8)calcHistory.pop();
-      document.getElementById('cHist').innerHTML=calcHistory.map(h=>`<span>${h}</span>`).join('');
-      disp.textContent=resStr;expr=resStr;isNewNum=true;
-    }catch(e){disp.classList.add('err');disp.textContent='Error';setTimeout(()=>{disp.classList.remove('err');disp.textContent='0';expr=''},1200)}
-    return;
-  }
-  // Operators + numbers
-  if(['+','-','*','/','(',')'].includes(a)){expr+=a;}
-  else{if(isNewNum&&!['+','-','*','/','.','(',')',].includes(a)){expr=a;isNewNum=false;}else expr+=a;}
-  disp.textContent=expr;
-}
-document.addEventListener('keydown',e=>{
-  if(document.getElementById('searchOv').classList.contains('show'))return;
-  const k=e.key;
-  if(k>='0'&&k<='9')calcAction(k);
-  else if(k==='.'||k==='+')calcAction(k);
-  else if(k==='-'||k==='*'||k==='/'||k==='('||k===')')calcAction(k);
-  else if(k==='Enter'||k==='=')calcAction('EQ');
-  else if(k==='Backspace')calcAction('DEL');
-  else if(k==='Escape')calcAction('AC');
-});
-function injectConst(val,sym){
-  const disp=document.getElementById('cDisp');
-  document.getElementById('cExpr').textContent='Constant: '+sym+' = '+val;
-  document.getElementById('cDisp').textContent=val;
-  expr=val;isNewNum=false;
-}
-
-// Unit Converter
-const CONV={
-  J_cal:v=>v/4.184,cal_J:v=>v*4.184,J_eV:v=>v/1.602e-19,eV_J:v=>v*1.602e-19,
-  kWh_J:v=>v*3.6e6,J_kWh:v=>v/3.6e6,W_hp:v=>v/745.7,hp_W:v=>v*745.7,
-  kW_W:v=>v*1000,W_kW:v=>v/1000,Ohm_kOhm:v=>v/1000,kOhm_Ohm:v=>v*1000,
-  Ohm_MOhm:v=>v/1e6,MOhm_Ohm:v=>v*1e6,A_mA:v=>v*1000,mA_A:v=>v/1000,
-  A_uA:v=>v*1e6,uA_A:v=>v/1e6,T_mT:v=>v*1000,mT_T:v=>v/1000,
-  Wb_mWb:v=>v*1000,G_T:v=>v*1e-4,T_G:v=>v*1e4,
-  F_uF:v=>v*1e6,uF_F:v=>v/1e6,uF_nF:v=>v*1000,nF_pF:v=>v*1000,
-};
-const CONV_UNITS={J_cal:'cal',cal_J:'J',J_eV:'eV',eV_J:'J',kWh_J:'J',J_kWh:'kWh',W_hp:'hp',hp_W:'W',kW_W:'W',W_kW:'kW',Ohm_kOhm:'kΩ',kOhm_Ohm:'Ω',Ohm_MOhm:'MΩ',MOhm_Ohm:'Ω',A_mA:'mA',mA_A:'A',A_uA:'μA',uA_A:'A',T_mT:'mT',mT_T:'T',Wb_mWb:'mWb',G_T:'T',T_G:'G',F_uF:'μF',uF_F:'F',uF_nF:'nF',nF_pF:'pF'};
-function doConvert(){
-  const v=parseFloat(document.getElementById('cv-from').value);
-  const t=document.getElementById('cv-type').value;
-  const res=document.getElementById('cv-result');
-  if(!t||isNaN(v)){res.textContent='—';return}
-  const r=CONV[t]?CONV[t](v):null;
-  if(r===null){res.textContent='—';return}
-  res.textContent=(+r.toPrecision(8))+' '+(CONV_UNITS[t]||'');
-}
-
-// Formula Solver
-const FS_DEFS={
-  ohm:{name:"Ohm's Law",fields:[['V','Voltage (V)'],['I','Current (A)'],['R','Resistance (Ω)']],solve(o){
-    if(o.I&&o.R)return'V = '+roundF(o.I*o.R)+' V';
-    if(o.V&&o.R)return'I = '+roundF(o.V/o.R)+' A';
-    if(o.V&&o.I)return'R = '+roundF(o.V/o.I)+' Ω';
-    return'Fill 2 fields';
-  }},
-  power:{name:'Electric Power',fields:[['P','Power (W)'],['I','Current (A)'],['V','Voltage (V)'],['R','Resistance (Ω)']],solve(o){
-    if(o.I&&o.V)return'P = '+roundF(o.I*o.V)+' W';
-    if(o.I&&o.R)return'P = '+roundF(o.I*o.I*o.R)+' W';
-    if(o.V&&o.R)return'P = '+roundF(o.V*o.V/o.R)+' W';
-    if(o.P&&o.V)return'I = '+roundF(o.P/o.V)+' A';
-    if(o.P&&o.I)return'R = '+roundF(o.P/(o.I*o.I))+' Ω';
-    return'Fill required fields';
-  }},
-  energy:{name:'Electric Energy',fields:[['E','Energy (J)'],['P','Power (W)'],['t','Time (s)']],solve(o){
-    if(o.P&&o.t)return'E = '+roundF(o.P*o.t)+' J';
-    if(o.E&&o.t)return'P = '+roundF(o.E/o.t)+' W';
-    if(o.E&&o.P)return't = '+roundF(o.E/o.P)+' s';
-    return'Fill 2 fields';
-  }},
-  charge:{name:'Electric Charge',fields:[['Q','Charge (C)'],['I','Current (A)'],['t','Time (s)']],solve(o){
-    if(o.I&&o.t)return'Q = '+roundF(o.I*o.t)+' C';
-    if(o.Q&&o.t)return'I = '+roundF(o.Q/o.t)+' A';
-    if(o.Q&&o.I)return't = '+roundF(o.Q/o.I)+' s';
-    return'Fill 2 fields';
-  }},
-  resist:{name:'Resistance',fields:[['R','Resistance (Ω)'],['rho','Resistivity ρₑ (Ω·m)'],['l','Length (m)'],['A','Area (m²)']],solve(o){
-    if(o.rho&&o.l&&o.A)return'R = '+roundF(o.rho*o.l/o.A)+' Ω';
-    if(o.R&&o.l&&o.A)return'ρₑ = '+roundF(o.R*o.A/o.l)+' Ω·m';
-    if(o.R&&o.rho&&o.A)return'l = '+roundF(o.R*o.A/o.rho)+' m';
-    if(o.R&&o.rho&&o.l)return'A = '+roundF(o.rho*o.l/o.R)+' m²';
-    return'Fill 3 fields';
-  }},
-  bwire:{name:'Wire Magnetic Field',fields:[['B','B density (T)'],['mu','Permeability μ (T·m/A)'],['I','Current (A)'],['d','Distance (m)']],solve(o){
-    const mu=o.mu||4*Math.PI*1e-7;
-    if(o.I&&o.d)return'B = '+roundF(mu*o.I/(2*Math.PI*o.d))+' T';
-    if(o.B&&o.d)return'I = '+roundF(o.B*2*Math.PI*o.d/mu)+' A';
-    if(o.B&&o.I)return'd = '+roundF(mu*o.I/(2*Math.PI*o.B))+' m';
-    return'Fill I and d at minimum';
-  }},
-  bcoil:{name:'Circular Coil Centre B',fields:[['B','B (T)'],['mu','μ (T·m/A)'],['I','Current (A)'],['N','Turns'],['r','Radius (m)']],solve(o){
-    const mu=o.mu||4*Math.PI*1e-7,N=o.N||1;
-    if(o.I&&o.r)return'B = '+roundF(mu*o.I*N/(2*o.r))+' T';
-    if(o.B&&o.r)return'I = '+roundF(o.B*2*o.r/(mu*N))+' A';
-    return'Fill I and r';
-  }},
-  bsol:{name:'Solenoid Field',fields:[['B','B (T)'],['mu','μ (T·m/A)'],['I','Current (A)'],['N','Turns'],['l','Length (m)']],solve(o){
-    const mu=o.mu||4*Math.PI*1e-7;
-    if(o.I&&o.N&&o.l)return'B = '+roundF(mu*o.I*o.N/o.l)+' T';
-    if(o.B&&o.N&&o.l)return'I = '+roundF(o.B*o.l/(mu*o.N))+' A';
-    return'Fill I, N and l';
-  }},
-  force:{name:'Wire Force',fields:[['F','Force (N)'],['B','B (T)'],['I','Current (A)'],['l','Length (m)'],['theta','θ (degrees)']],solve(o){
-    const th=o.theta!=null?o.theta:90;
-    if(o.B&&o.I&&o.l)return'F = '+roundF(o.B*o.I*o.l*Math.sin(th*Math.PI/180))+' N';
-    if(o.F&&o.I&&o.l)return'B = '+roundF(o.F/(o.I*o.l*Math.sin(th*Math.PI/180)))+' T';
-    return'Fill B, I and l';
-  }},
-  torque:{name:'Magnetic Torque',fields:[['tau','τ (N·m)'],['B','B (T)'],['I','Current (A)'],['A','Area (m²)'],['N','Turns'],['theta','θ (degrees)']],solve(o){
-    const th=o.theta!=null?o.theta:90;
-    if(o.B&&o.I&&o.A&&o.N)return'τ = '+roundF(o.B*o.I*o.A*o.N*Math.sin(th*Math.PI/180))+' N·m';
-    if(o.tau&&o.I&&o.A&&o.N)return'B = '+roundF(o.tau/(o.I*o.A*o.N*Math.sin(th*Math.PI/180)))+' T';
-    return'Fill B, I, A and N';
-  }},
-  emf:{name:'Faraday EMF',fields:[['emf','emf (V)'],['N','Turns'],['dPhi','ΔΦ (Wb)'],['dt','Δt (s)']],solve(o){
-    if(o.N&&o.dPhi&&o.dt)return'|emf| = '+roundF(o.N*o.dPhi/o.dt)+' V';
-    if(o.emf&&o.N&&o.dt)return'ΔΦ = '+roundF(o.emf*o.dt/o.N)+' Wb';
-    return'Fill N, ΔΦ and Δt';
-  }},
-  flux:{name:'Magnetic Flux',fields:[['phi','φ (Wb)'],['B','B (T)'],['A','Area (m²)'],['theta','θ (degrees)']],solve(o){
-    const th=o.theta!=null?o.theta:0;
-    if(o.B&&o.A)return'φ = '+roundF(o.B*o.A*Math.cos(th*Math.PI/180))+' Wb';
-    if(o.phi&&o.A)return'B = '+roundF(o.phi/(o.A*Math.cos(th*Math.PI/180)))+' T';
-    return'Fill B and A';
-  }},
-  mutual:{name:'Mutual EMF',fields:[['emf','emf (V)'],['M','M (H)'],['dI','ΔI (A)'],['dt','Δt (s)']],solve(o){
-    if(o.M&&o.dI&&o.dt)return'|emf| = '+roundF(o.M*o.dI/o.dt)+' V';
-    if(o.emf&&o.dI&&o.dt)return'M = '+roundF(o.emf*o.dt/o.dI)+' H';
-    return'Fill M, ΔI and Δt';
-  }},
-  resist_ser:{name:'Series Resistance',fields:[['R1','R₁ (Ω)'],['R2','R₂ (Ω)'],['R3','R₃ (Ω, optional)'],['R4','R₄ (Ω, optional)']],solve(o){
-    const r=[o.R1,o.R2,o.R3,o.R4].filter(v=>v);
-    if(r.length<2)return'Enter at least R₁ and R₂';
-    return'Rₑq = '+roundF(r.reduce((a,b)=>a+b,0))+' Ω';
-  }},
-  resist_par:{name:'Parallel Resistance',fields:[['R1','R₁ (Ω)'],['R2','R₂ (Ω)'],['R3','R₃ (Ω, optional)'],['R4','R₄ (Ω, optional)']],solve(o){
-    const r=[o.R1,o.R2,o.R3,o.R4].filter(v=>v);
-    if(r.length<2)return'Enter at least R₁ and R₂';
-    const inv=r.reduce((a,b)=>a+1/b,0);
-    return'Rₑq = '+roundF(1/inv)+' Ω';
-  }},
-};
-function roundF(v){return isNaN(v)||!isFinite(v)?'Error':+v.toPrecision(8)}
-function renderFSolver(){
-  const t=document.getElementById('fs-type').value;
-  const box=document.getElementById('fs-fields');
-  const res=document.getElementById('fs-result');
-  if(!t){box.innerHTML='';res.textContent='';return}
-  const def=FS_DEFS[t];
-  box.innerHTML=def.fields.map(([id,lbl])=>`
-    <div style="margin-bottom:.6rem">
-      <label style="font-size:.68rem;color:var(--muted);letter-spacing:.5px;display:block;margin-bottom:3px;text-transform:uppercase">${lbl}</label>
-      <input id="fs_${id}" type="number" step="any" placeholder="leave blank to solve" class="conv-inp" style="width:100%">
-    </div>`).join('');
-  const calcBtn=document.createElement('button');
-  calcBtn.className='lab-btn success';calcBtn.textContent='↗ Solve';
-  calcBtn.style.width='100%';calcBtn.style.marginTop='.5rem';
-  calcBtn.onclick=()=>{
-    const o={};
-    def.fields.forEach(([id])=>{const v=parseFloat(document.getElementById('fs_'+id).value);if(!isNaN(v))o[id]=v});
-    res.textContent=def.solve(o);
-  };
-  box.appendChild(calcBtn);
-}
-
-// ════════════════════════════════════════════
-// VIRTUAL LAB ENGINE
-// ════════════════════════════════════════════
-let labMode='select',components=[],wires=[],selectedComp=null,draggingType=null;
-let wireStart=null,editTarget=null;
-const compDefs={
-  battery:{ico:'🔋',lbl:'Battery',color:'rgba(251,191,36,.2)',brd:'rgba(251,191,36,.3)',defaults:{emf:9,r:0},unit:'V',field:'emf'},
-  resistor:{ico:'⬜',lbl:'Resistor',color:'rgba(139,92,246,.12)',brd:'rgba(139,92,246,.3)',defaults:{R:100},unit:'Ω',field:'R'},
-  variable:{ico:'🎚️',lbl:'Rheostat',color:'rgba(103,232,249,.1)',brd:'rgba(103,232,249,.25)',defaults:{R:50},unit:'Ω',field:'R'},
-  switch:{ico:'🔌',lbl:'Switch',color:'rgba(52,211,153,.1)',brd:'rgba(52,211,153,.25)',defaults:{closed:1},unit:'',field:'closed'},
-  ammeter:{ico:'🅐',lbl:'Ammeter',color:'rgba(248,113,113,.1)',brd:'rgba(248,113,113,.25)',defaults:{},unit:''},
-  voltmeter:{ico:'🅥',lbl:'Voltmeter',color:'rgba(232,121,249,.1)',brd:'rgba(232,121,249,.25)',defaults:{},unit:''},
-  lamp:{ico:'💡',lbl:'Lamp',color:'rgba(251,191,36,.1)',brd:'rgba(251,191,36,.25)',defaults:{R:60},unit:'Ω',field:'R'},
-  capacitor:{ico:'⚡',lbl:'Capacitor',color:'rgba(103,232,249,.1)',brd:'rgba(103,232,249,.2)',defaults:{C:100},unit:'μF',field:'C'},
-  coil:{ico:'〰️',lbl:'Inductor',color:'rgba(139,92,246,.12)',brd:'rgba(139,92,246,.3)',defaults:{L:10},unit:'mH',field:'L'},
-  galv:{ico:'🅖',lbl:'Galvanometer',color:'rgba(52,211,153,.1)',brd:'rgba(52,211,153,.25)',defaults:{Rg:50},unit:'Ω',field:'Rg'},
-  wire:{ico:'➖',lbl:'Junction',color:'rgba(167,139,250,.1)',brd:'rgba(167,139,250,.25)',defaults:{},unit:''},
-};
-
-function dragStart(e){draggingType=e.target.closest('[data-type]').dataset.type}
-function dropComp(e){
-  e.preventDefault();
-  if(!draggingType)return;
-  const canvas=document.getElementById('lab-canvas');
-  const rect=canvas.getBoundingClientRect();
-  const x=e.clientX-rect.left-60,y=e.clientY-rect.top-25;
-  addComponent(draggingType,Math.max(0,x),Math.max(0,y));
-  draggingType=null;
-}
-function addComponent(type,x,y,vals={}){
-  const id='c'+Date.now()+Math.random().toString(36).slice(2,5);
-  const def=compDefs[type];
-  const comp={id,type,x,y,vals:{...def.defaults,...vals}};
-  components.push(comp);
-  renderComp(comp);
-  document.getElementById('dropHint').style.display='none';
-  logMsg('Added '+def.lbl,'ok');
-  updateMetrics();
-  return comp;
-}
-function renderComp(comp){
-  const def=compDefs[comp.type];
-  const el=document.createElement('div');
-  el.className='c-comp';el.id=comp.id;
-  el.style.cssText=`left:${comp.x}px;top:${comp.y}px`;
-  const valStr=comp.vals.emf!=null?comp.vals.emf+'V':comp.vals.R!=null?comp.vals.R+'Ω':comp.vals.closed!=null?(comp.vals.closed?'Closed':'Open'):comp.vals.C!=null?comp.vals.C+'μF':comp.vals.L!=null?comp.vals.L+'mH':comp.vals.Rg!=null?comp.vals.Rg+'Ω':'';
-  el.innerHTML=`
-    <div class="c-comp-del" onclick="delComp('${comp.id}')">✕</div>
-    <div class="c-comp-edit" onclick="editComp('${comp.id}')">✎</div>
-    <div class="c-comp-inner" style="background:${def.color};border-color:${def.brd}">
-      <span class="ico">${def.ico}</span>
-      <div class="info"><div class="lbl">${def.lbl}</div><div class="val">${valStr}</div></div>
-    </div>`;
-  el.addEventListener('mousedown',ev=>startDrag(ev,comp));
-  el.addEventListener('click',ev=>{ev.stopPropagation();selectComp(comp.id)});
-  if(comp.type==='switch'){el.querySelector('.c-comp-inner').addEventListener('dblclick',()=>toggleSwitch(comp.id))}
-  document.getElementById('lab-canvas').appendChild(el);
-}
-function startDrag(ev,comp){
-  if(labMode==='wire')return;
-  ev.stopPropagation();
-  const canvas=document.getElementById('lab-canvas');
-  const rect=canvas.getBoundingClientRect();
-  const ox=ev.clientX-rect.left-comp.x,oy=ev.clientY-rect.top-comp.y;
-  selectComp(comp.id);
-  function mm(e){comp.x=e.clientX-rect.left-ox;comp.y=e.clientY-rect.top-oy;const el=document.getElementById(comp.id);if(el){el.style.left=comp.x+'px';el.style.top=comp.y+'px'}updateWires()}
-  function mu(){document.removeEventListener('mousemove',mm);document.removeEventListener('mouseup',mu)}
-  document.addEventListener('mousemove',mm);document.addEventListener('mouseup',mu);
-}
-function selectComp(id){
-  document.querySelectorAll('.c-comp').forEach(el=>el.classList.remove('selected'));
-  const el=document.getElementById(id);if(el)el.classList.add('selected');
-  selectedComp=id;
-}
-function delComp(id){
-  components=components.filter(c=>c.id!==id);
-  wires=wires.filter(w=>w.from!==id&&w.to!==id);
-  const el=document.getElementById(id);if(el)el.remove();
-  updateWires();updateMetrics();
-  logMsg('Component removed','warn');
-  if(!components.length)document.getElementById('dropHint').style.display='flex';
-}
-function toggleSwitch(id){
-  const comp=components.find(c=>c.id===id);if(!comp)return;
-  comp.vals.closed=comp.vals.closed?0:1;
-  const el=document.getElementById(id);
-  if(el){const v=el.querySelector('.val');if(v)v.textContent=comp.vals.closed?'Closed':'Open';
-  el.querySelector('.c-comp-inner').style.borderColor=comp.vals.closed?'rgba(52,211,153,.5)':'rgba(248,113,113,.5)'}
-  logMsg('Switch '+(comp.vals.closed?'closed':'opened'),'ok');updateMetrics();
-}
-function editComp(id){
-  const comp=components.find(c=>c.id===id);if(!comp)return;
-  const def=compDefs[comp.type];editTarget=id;
-  const modal=document.getElementById('editModal');
-  document.getElementById('modal-title').textContent='Edit '+def.lbl;
-  const row2=document.getElementById('modal-row2');row2.style.display='none';
-  if(comp.type==='battery'){
-    document.getElementById('modal-lbl').textContent='Internal Resistance r (Ω)';
-    document.getElementById('modal-inp').value=comp.vals.r||0;
-    document.getElementById('modal-inp').placeholder='e.g. 0';
-    row2.style.display='block';
-    document.getElementById('modal-lbl2').textContent='EMF (V)';
-    document.getElementById('modal-inp2').value=comp.vals.emf||9;
-    document.getElementById('modal-sub').textContent='Set EMF and internal resistance';
-  } else if(def.field){
-    document.getElementById('modal-lbl').textContent=def.lbl+' ('+def.unit+')';
-    document.getElementById('modal-inp').value=comp.vals[def.field]||'';
-    document.getElementById('modal-sub').textContent='Enter the '+def.lbl.toLowerCase()+' value';
-  }
-  document.getElementById('modal-ok').onclick=()=>{
-    const v=parseFloat(document.getElementById('modal-inp').value);
-    if(!isNaN(v)){
-      if(comp.type==='battery'){comp.vals.r=v;const emf=parseFloat(document.getElementById('modal-inp2').value);if(!isNaN(emf))comp.vals.emf=emf}
-      else if(def.field)comp.vals[def.field]=v;
-    }
-    refreshCompEl(comp);updateMetrics();closeModal();
-    logMsg(def.lbl+' updated to '+(comp.vals[def.field||'emf']||0)+def.unit,'ok');
-  };
-  modal.classList.add('show');document.body.style.overflow='hidden';
-}
-function closeModal(){document.getElementById('editModal').classList.remove('show');document.body.style.overflow=''}
-function refreshCompEl(comp){
-  const def=compDefs[comp.type];
-  const el=document.getElementById(comp.id);if(!el)return;
-  const v=el.querySelector('.val');if(!v)return;
-  v.textContent=comp.vals.emf!=null&&comp.type==='battery'?comp.vals.emf+'V (r='+comp.vals.r+'Ω)':comp.vals.R!=null?comp.vals.R+'Ω':comp.vals.closed!=null?(comp.vals.closed?'Closed':'Open'):comp.vals.C!=null?comp.vals.C+'μF':comp.vals.L!=null?comp.vals.L+'mH':comp.vals.Rg!=null?comp.vals.Rg+'Ω':'';
-}
-
-// Wire mode
-function toggleMode(m){labMode=m;document.getElementById('mode-ind').textContent='Mode: '+m.toUpperCase();wireStart=null;updateWires()}
-function canvasClick(e){
-  if(labMode!=='wire')return;
-  const canvas=document.getElementById('lab-canvas');
-  const rect=canvas.getBoundingClientRect();
-  const x=e.clientX-rect.left,y=e.clientY-rect.top;
-  const hit=components.find(c=>Math.abs(c.x+60-x)<60&&Math.abs(c.y+20-y)<35);
-  if(!hit)return;
-  if(!wireStart){wireStart=hit.id;logMsg('Wire start: '+compDefs[hit.type].lbl,'ok')}
-  else if(wireStart!==hit.id){
-    wires.push({from:wireStart,to:hit.id,id:'w'+Date.now()});
-    logMsg('Wire connected: '+compDefs[components.find(c=>c.id===wireStart).type].lbl+' → '+compDefs[hit.type].lbl,'ok');
-    wireStart=null;updateWires();
-  }
-}
-function updateWires(){
-  const svg=document.getElementById('wireSvg');
-  svg.innerHTML='';
-  wires.forEach(w=>{
-    const a=components.find(c=>c.id===w.from),b=components.find(c=>c.id===w.to);
-    if(!a||!b)return;
-    const x1=a.x+60,y1=a.y+22,x2=b.x+60,y2=b.y+22;
-    const mx=(x1+x2)/2;
-    const path=document.createElementNS('http://www.w3.org/2000/svg','path');
-    path.setAttribute('d',`M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2}`);
-    path.setAttribute('class','wire');path.dataset.id=w.id;
-    path.addEventListener('dblclick',()=>{wires=wires.filter(ww=>ww.id!==w.id);updateWires();logMsg('Wire removed','warn')});
-    svg.appendChild(path);
-  });
-}
-function clearWires(){wires=[];updateWires();logMsg('All wires cleared','warn')}
-function clearAll(){components=[];wires=[];document.getElementById('lab-canvas').querySelectorAll('.c-comp').forEach(el=>el.remove());updateWires();updateMetrics();document.getElementById('dropHint').style.display='flex';logMsg('Lab cleared','warn')}
-
-// Circuit Analysis
-function calculateCircuit(){
-  const batteries=components.filter(c=>c.type==='battery');
-  const resistors=components.filter(c=>['resistor','variable','lamp','coil','galv'].includes(c.type));
-  const switches=components.filter(c=>c.type==='switch');
-  const openSwitch=switches.find(s=>!s.vals.closed);
-  if(openSwitch){setMetrics('∞','—','0','0','Open switch — circuit broken');logMsg('Open switch detected — no current flows','warn');return}
-  if(!batteries.length){setMetrics('—','—','—','—','No battery');logMsg('No battery in circuit','err');return}
-  if(!resistors.length){setMetrics('0','—','—','—','No resistors');logMsg('No resistors — short circuit warning!','warn');return}
-  const totalEMF=batteries.reduce((s,b)=>s+b.vals.emf,0);
-  const totalInternalR=batteries.reduce((s,b)=>s+(b.vals.r||0),0);
-  const extR=resistors.reduce((s,r)=>s+(r.vals.R||r.vals.Rg||r.vals.L||0),0);
-  const totalR=totalInternalR+extR;
-  const I=totalR>0?totalEMF/totalR:Infinity;
-  const P=I*I*totalR;
-  const type=detectType();
-  setMetrics(extR.toFixed(2),totalEMF.toFixed(2),I.toFixed(4),P.toFixed(4),type);
-  logMsg(`Analysis: V=${totalEMF}V, Rₑₓₜ=${extR}Ω, I=${I.toFixed(4)}A, P=${P.toFixed(3)}W`,'ok');
-
-  // Update ammeter/voltmeter displays
-  components.filter(c=>c.type==='ammeter').forEach(c=>{const el=document.getElementById(c.id);if(el){const v=el.querySelector('.val');if(v)v.textContent=I.toFixed(4)+'A'}});
-  components.filter(c=>c.type==='voltmeter').forEach(c=>{const el=document.getElementById(c.id);if(el){const v=el.querySelector('.val');if(v)v.textContent=totalEMF.toFixed(2)+'V'}});
-  components.filter(c=>c.type==='lamp').forEach(c=>{
-    const el=document.getElementById(c.id);if(!el)return;
-    const p=I*I*(c.vals.R||60);
-    const bright=Math.min(p/20,1);
-    el.querySelector('.ico').textContent=bright>0.5?'💡':'🔅';
-  });
-}
-function detectType(){
-  const res=components.filter(c=>['resistor','variable','lamp'].includes(c.type));
-  if(!res.length)return'—';
-  if(wires.length<2)return'Series (assumed)';
-  return wires.length>=res.length*2-1?'Parallel':'Series';
-}
-function setMetrics(R,V,I,P,type){
-  document.getElementById('inf-R').innerHTML=R+'<span class="info-unit">Ω</span>';
-  document.getElementById('inf-V').innerHTML=V+'<span class="info-unit">V</span>';
-  document.getElementById('inf-I').innerHTML=I+'<span class="info-unit">A</span>';
-  document.getElementById('inf-P').innerHTML=P+'<span class="info-unit">W</span>';
-  document.getElementById('inf-type').textContent=type;
-  const maxR=500,maxV=100,maxI=10,maxP=1000;
-  document.getElementById('bar-R').style.width=Math.min(parseFloat(R)||0,maxR)/maxR*100+'%';
-  document.getElementById('bar-V').style.width=Math.min(parseFloat(V)||0,maxV)/maxV*100+'%';
-  document.getElementById('bar-I').style.width=Math.min(parseFloat(I)||0,maxI)/maxI*100+'%';
-  document.getElementById('bar-P').style.width=Math.min(parseFloat(P)||0,maxP)/maxP*100+'%';
-  document.getElementById('inf-breakdown').innerHTML=components.length?components.map(c=>{
-    const def=compDefs[c.type];
-    const v=c.vals.emf!=null?c.vals.emf+'V':c.vals.R!=null?c.vals.R+'Ω':c.vals.closed!=null?(c.vals.closed?'●':'○'):'';
-    return`<span>${def.ico} ${def.lbl}: ${v}</span>`;
-  }).join('<br>'):'No components placed';
-}
-function updateMetrics(){
-  if(components.length)calculateCircuit();
-  else setMetrics('—','—','—','—','Empty circuit');
-}
-
-// Presets
-function loadPreset(name){
-  clearAll();
-  const presets={
-    series:()=>{
-      const b=addComponent('battery',40,200,{emf:12,r:1});
-      const r1=addComponent('resistor',220,120,{R:30});
-      const r2=addComponent('resistor',400,120,{R:20});
-      const r3=addComponent('resistor',400,280,{R:10});
-      const a=addComponent('ammeter',220,280,{});
-      [b,r1,r2,r3,a].forEach(c=>c);
-      wires=[
-        {from:b.id,to:r1.id,id:'w1'},{from:r1.id,to:r2.id,id:'w2'},
-        {from:r2.id,to:r3.id,id:'w3'},{from:r3.id,to:a.id,id:'w4'},{from:a.id,to:b.id,id:'w5'}
-      ];
-      updateWires();logMsg('Series preset loaded — 3 resistors (30+20+10=60Ω), 12V battery','ok');
-    },
-    parallel:()=>{
-      const b=addComponent('battery',40,200,{emf:12,r:0.5});
-      const r1=addComponent('resistor',250,100,{R:30});
-      const r2=addComponent('resistor',250,220,{R:60});
-      const r3=addComponent('resistor',250,340,{R:20});
-      const v=addComponent('voltmeter',500,220,{});
-      [b,r1,r2,r3,v].forEach(c=>c);
-      wires=[
-        {from:b.id,to:r1.id,id:'w1'},{from:b.id,to:r2.id,id:'w2'},{from:b.id,to:r3.id,id:'w3'},
-        {from:r1.id,to:v.id,id:'w4'},{from:r2.id,to:v.id,id:'w5'},{from:r3.id,to:v.id,id:'w6'}
-      ];
-      updateWires();logMsg('Parallel preset — 3 resistors (30‖60‖20)Ω, 12V battery','ok');
-    },
-    mixed:()=>{
-      const b=addComponent('battery',30,220,{emf:20,r:1});
-      const r1=addComponent('resistor',210,120,{R:10});
-      const r2=addComponent('resistor',400,100,{R:20});
-      const r3=addComponent('resistor',400,200,{R:20});
-      const r4=addComponent('resistor',580,120,{R:15});
-      const sw=addComponent('switch',210,280,{closed:1});
-      const a=addComponent('ammeter',550,280,{});
-      [b,r1,r2,r3,r4,sw,a].forEach(c=>c);
-      wires=[
-        {from:b.id,to:r1.id,id:'w1'},{from:r1.id,to:r2.id,id:'w2'},{from:r1.id,to:r3.id,id:'w3'},
-        {from:r2.id,to:r4.id,id:'w4'},{from:r3.id,to:r4.id,id:'w5'},{from:r4.id,to:a.id,id:'w6'},
-        {from:b.id,to:sw.id,id:'w7'},{from:sw.id,to:a.id,id:'w8'}
-      ];
-      updateWires();logMsg('Mixed preset — series+parallel combination loaded','ok');
-    },
-    wheatstone:()=>{
-      const b=addComponent('battery',30,250,{emf:10,r:0});
-      const r1=addComponent('resistor',220,120,{R:100});
-      const r2=addComponent('resistor',420,120,{R:100});
-      const r3=addComponent('resistor',220,350,{R:100});
-      const r4=addComponent('resistor',420,350,{R:100});
-      const g=addComponent('galv',320,240,{Rg:50});
-      [b,r1,r2,r3,r4,g].forEach(c=>c);
-      wires=[
-        {from:b.id,to:r1.id,id:'w1'},{from:b.id,to:r3.id,id:'w2'},
-        {from:r1.id,to:r2.id,id:'w3'},{from:r3.id,to:r4.id,id:'w4'},
-        {from:r2.id,to:r4.id,id:'w5'},{from:r1.id,to:g.id,id:'w6'},{from:r3.id,to:g.id,id:'w7'}
-      ];
-      updateWires();logMsg('Wheatstone bridge loaded — balanced bridge (all 100Ω)','ok');
-    }
-  };
-  if(presets[name])presets[name]();
-  calculateCircuit();
-}
-function logMsg(msg,type=''){
-  const log=document.getElementById('labLog');
-  const entry=document.createElement('span');
-  entry.className='log-entry '+(type==='ok'?'log-ok':type==='warn'?'log-warn':type==='err'?'log-err':'');
-  const t=new Date().toLocaleTimeString('en',{hour12:false,hour:'2-digit',minute:'2-digit',second:'2-digit'});
-  entry.textContent=t+' '+msg;
-  log.insertBefore(entry,log.firstChild);
-  if(log.children.length>20)log.removeChild(log.lastChild);
-}
-
-// Nav active
-const allSections=[...document.querySelectorAll('section[id]')];
-window.addEventListener('scroll',()=>{
-  let cur='';allSections.forEach(s=>{if(window.scrollY>=s.offsetTop-120)cur=s.id});
-  document.querySelectorAll('.nav-tab').forEach(a=>{
-    const href=a.getAttribute('href');
-    a.classList.toggle('active',href==='#'+cur);
-  });
-},{passive:true});
-</script>
+<div id="sb-ov" onclick="closeSB()"></div>
+<div id="toast" class="toast"></div>
+<script src="js/app.js"></script>
 </body>
 </html>
