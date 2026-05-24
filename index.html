@@ -2,401 +2,472 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>FocusFlow — Omar Mohamed</title>
-  <link rel="stylesheet" href="css/style.css"/>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/tabler-icons.min.css"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+  <meta name="theme-color" content="#0f0f13"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+  <meta name="apple-mobile-web-app-title" content="FocusFlow"/>
+  <link rel="manifest" href="manifest.json"/>
+  <title>FocusFlow — by Omar Mohamed</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.47.0/tabler-icons.min.css"/>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <link rel="stylesheet" href="css/style.css"/>
 </head>
 <body>
 
-<!-- AUTH SCREEN -->
-<div id="auth-screen" class="screen">
+<!-- ══════════════ AUTH ══════════════ -->
+<div id="auth-screen">
+  <div class="auth-bg-orb orb1"></div>
+  <div class="auth-bg-orb orb2"></div>
   <div class="auth-card">
-    <div class="auth-logo"><i class="ti ti-focus-2"></i> FocusFlow</div>
-    <div id="auth-tabs" class="tab-row">
-      <button class="tab-btn active" onclick="showAuthTab('login')">Sign in</button>
-      <button class="tab-btn" onclick="showAuthTab('register')">Create account</button>
+    <div class="auth-logo">
+      <div class="auth-logo-icon"><i class="ti ti-target"></i></div>
+      <div>
+        <div class="auth-logo-name">FocusFlow</div>
+        <div class="auth-logo-sub">by Omar Mohamed</div>
+      </div>
+    </div>
+    <div class="auth-tabs">
+      <button class="auth-tab active" onclick="showAuthTab('login')">Sign in</button>
+      <button class="auth-tab" onclick="showAuthTab('register')">Create account</button>
     </div>
 
+    <!-- LOGIN -->
     <div id="login-form">
-      <label>Email</label>
-      <input type="email" id="login-email" placeholder="you@email.com"/>
-      <label>Password</label>
-      <div class="pw-wrap"><input type="password" id="login-pw" placeholder="••••••••"/><i class="ti ti-eye" onclick="togglePw('login-pw',this)"></i></div>
-      <button class="btn-primary" onclick="doLogin()">Sign in</button>
-      <p class="auth-hint" id="login-err"></p>
+      <div class="field-group">
+        <label>Email</label>
+        <div class="input-icon-wrap"><i class="ti ti-mail"></i><input type="email" id="l-email" placeholder="you@email.com" autocomplete="email"/></div>
+      </div>
+      <div class="field-group">
+        <label>Password</label>
+        <div class="input-icon-wrap"><i class="ti ti-lock"></i><input type="password" id="l-pw" placeholder="••••••••" autocomplete="current-password"/><i class="ti ti-eye pw-toggle" onclick="togglePw('l-pw',this)"></i></div>
+      </div>
+      <button class="btn-auth" onclick="doLogin()"><i class="ti ti-login"></i> Sign in</button>
+      <p class="auth-err" id="l-err"></p>
     </div>
 
+    <!-- REGISTER -->
     <div id="register-form" style="display:none">
-      <label>Full name</label>
-      <input type="text" id="reg-name" placeholder="Omar Mohamed"/>
-      <label>Email</label>
-      <input type="email" id="reg-email" placeholder="you@email.com"/>
-      <label>Password</label>
-      <div class="pw-wrap"><input type="password" id="reg-pw" placeholder="••••••••"/><i class="ti ti-eye" onclick="togglePw('reg-pw',this)"></i></div>
-      <button class="btn-primary" onclick="doRegister()">Create account</button>
-      <p class="auth-hint" id="reg-err"></p>
+      <div class="field-group">
+        <label>Full name</label>
+        <div class="input-icon-wrap"><i class="ti ti-user"></i><input type="text" id="r-name" placeholder="Your name"/></div>
+      </div>
+      <div class="field-group">
+        <label>Email</label>
+        <div class="input-icon-wrap"><i class="ti ti-mail"></i><input type="email" id="r-email" placeholder="you@email.com" autocomplete="email"/></div>
+      </div>
+      <div class="field-group">
+        <label>Password</label>
+        <div class="input-icon-wrap"><i class="ti ti-lock"></i><input type="password" id="r-pw" placeholder="••••••••" autocomplete="new-password"/><i class="ti ti-eye pw-toggle" onclick="togglePw('r-pw',this)"></i></div>
+      </div>
+      <button class="btn-auth" onclick="doRegister()"><i class="ti ti-user-plus"></i> Create account</button>
+      <p class="auth-err" id="r-err"></p>
     </div>
   </div>
 </div>
 
-<!-- MAIN APP -->
-<div id="app-screen" class="screen" style="display:none">
+<!-- ══════════════ APP ══════════════ -->
+<div id="app-screen" style="display:none">
 
-  <!-- SIDEBAR -->
+  <!-- SIDEBAR (desktop) -->
   <aside id="sidebar">
-    <div class="sidebar-brand"><i class="ti ti-focus-2"></i> FocusFlow</div>
-
-    <div class="profile-mini" onclick="navigate('profile')">
-      <div class="avatar-sm" id="sb-avatar"></div>
+    <div class="sb-brand">
+      <div class="sb-brand-icon"><i class="ti ti-target"></i></div>
       <div>
-        <div class="profile-name" id="sb-name"></div>
-        <div class="profile-sub">View profile</div>
+        <div class="sb-brand-name">FocusFlow</div>
+        <div class="sb-brand-dev">by Omar Mohamed</div>
       </div>
     </div>
 
-    <nav>
-      <a class="nav-item active" data-page="dashboard" onclick="navigate('dashboard')"><i class="ti ti-layout-dashboard"></i> Dashboard</a>
-      <a class="nav-item" data-page="timer" onclick="navigate('timer')"><i class="ti ti-clock"></i> Pomodoro timer</a>
-      <a class="nav-item" data-page="sleep" onclick="navigate('sleep')"><i class="ti ti-moon"></i> Sleep tracker</a>
-      <a class="nav-item" data-page="habits" onclick="navigate('habits')"><i class="ti ti-repeat"></i> Habits</a>
-      <a class="nav-item" data-page="analytics" onclick="navigate('analytics')"><i class="ti ti-chart-bar"></i> Analytics</a>
-      <a class="nav-item" data-page="profile" onclick="navigate('profile')"><i class="ti ti-user"></i> Profile</a>
+    <div class="sb-profile" onclick="navigate('profile')">
+      <div class="av av-sm" id="sb-av"></div>
+      <div>
+        <div class="sb-uname" id="sb-name">—</div>
+        <div class="sb-usub">View profile →</div>
+      </div>
+    </div>
+
+    <nav class="sb-nav">
+      <a class="sn active" data-p="dashboard" onclick="navigate('dashboard')">
+        <span class="sn-icon purple"><i class="ti ti-layout-dashboard"></i></span> Dashboard
+      </a>
+      <a class="sn" data-p="timer" onclick="navigate('timer')">
+        <span class="sn-icon violet"><i class="ti ti-clock"></i></span> Pomodoro
+      </a>
+      <a class="sn" data-p="sleep" onclick="navigate('sleep')">
+        <span class="sn-icon blue"><i class="ti ti-moon"></i></span> Sleep
+      </a>
+      <a class="sn" data-p="habits" onclick="navigate('habits')">
+        <span class="sn-icon green"><i class="ti ti-heart"></i></span> Habits
+      </a>
+      <a class="sn" data-p="water" onclick="navigate('water')">
+        <span class="sn-icon cyan"><i class="ti ti-droplet"></i></span> Water
+      </a>
+      <a class="sn" data-p="notes" onclick="navigate('notes')">
+        <span class="sn-icon amber"><i class="ti ti-notes"></i></span> Notes
+      </a>
+      <a class="sn" data-p="analytics" onclick="navigate('analytics')">
+        <span class="sn-icon coral"><i class="ti ti-chart-line"></i></span> Analytics
+      </a>
+      <a class="sn" data-p="profile" onclick="navigate('profile')">
+        <span class="sn-icon pink"><i class="ti ti-user"></i></span> Profile
+      </a>
     </nav>
 
-    <div class="sidebar-footer">
-      <button class="btn-ghost" onclick="doLogout()"><i class="ti ti-logout"></i> Sign out</button>
+    <div class="sb-footer">
+      <button class="btn-logout" onclick="doLogout()"><i class="ti ti-logout"></i> Sign out</button>
     </div>
   </aside>
 
-  <!-- TOPBAR (mobile) -->
+  <!-- TOPBAR -->
   <header id="topbar">
-    <button class="menu-btn" onclick="toggleSidebar()"><i class="ti ti-menu-2"></i></button>
+    <button class="topbar-menu" onclick="toggleSidebar()"><i class="ti ti-menu-2"></i></button>
     <span id="topbar-title">Dashboard</span>
-    <div class="avatar-xs" id="tb-avatar" onclick="navigate('profile')"></div>
+    <div class="av av-xs" id="tb-av" onclick="navigate('profile')"></div>
   </header>
 
-  <!-- PAGES -->
-  <main id="main-content">
+  <!-- MAIN -->
+  <main id="main">
 
-    <!-- DASHBOARD PAGE -->
+    <!-- ── DASHBOARD ── -->
     <div id="page-dashboard" class="page active">
-      <div class="page-header">
+      <div class="page-hd">
         <div>
-          <h1 id="dash-greeting"></h1>
+          <h1 id="dash-greeting">Good morning 👋</h1>
           <p class="page-sub" id="dash-date"></p>
         </div>
-        <div class="avatar-md" id="dash-avatar" onclick="navigate('profile')" style="cursor:pointer"></div>
+        <div class="av av-md" id="dash-av" onclick="navigate('profile')" style="cursor:pointer"></div>
       </div>
 
-      <div class="stats-grid">
-        <div class="stat-card purple">
-          <i class="ti ti-clock stat-icon"></i>
-          <div class="stat-val" id="stat-focus-today">0m</div>
-          <div class="stat-lbl">Focus today</div>
-        </div>
-        <div class="stat-card teal">
-          <i class="ti ti-moon stat-icon"></i>
-          <div class="stat-val" id="stat-sleep-last">—</div>
-          <div class="stat-lbl">Last sleep</div>
-        </div>
-        <div class="stat-card amber">
-          <i class="ti ti-flame stat-icon"></i>
-          <div class="stat-val" id="stat-streak">0</div>
-          <div class="stat-lbl">Day streak</div>
-        </div>
-        <div class="stat-card blue">
-          <i class="ti ti-checkbox stat-icon"></i>
-          <div class="stat-val" id="stat-tasks-done">0/0</div>
-          <div class="stat-lbl">Tasks done</div>
-        </div>
+      <div class="kpi-row">
+        <div class="kpi purple"><i class="ti ti-clock"></i><div class="kpi-val" id="kpi-focus">0m</div><div class="kpi-lbl">Focus today</div></div>
+        <div class="kpi blue"><i class="ti ti-moon"></i><div class="kpi-val" id="kpi-sleep">—</div><div class="kpi-lbl">Last sleep</div></div>
+        <div class="kpi amber"><i class="ti ti-flame"></i><div class="kpi-val" id="kpi-streak">0</div><div class="kpi-lbl">Day streak</div></div>
+        <div class="kpi green"><i class="ti ti-heart"></i><div class="kpi-val" id="kpi-habits">0/0</div><div class="kpi-lbl">Habits done</div></div>
       </div>
 
-      <div class="two-col">
+      <div class="grid-2">
         <div class="card">
-          <div class="card-head"><span>Weekly focus</span></div>
-          <canvas id="chart-focus" height="160"></canvas>
+          <div class="card-hd"><span class="card-title"><i class="ti ti-clock icon-sm purple"></i> Weekly focus</span></div>
+          <canvas id="c-dash-focus" height="150"></canvas>
         </div>
         <div class="card">
-          <div class="card-head"><span>Sleep this week</span></div>
-          <canvas id="chart-sleep" height="160"></canvas>
+          <div class="card-hd"><span class="card-title"><i class="ti ti-moon icon-sm blue"></i> Sleep this week</span></div>
+          <canvas id="c-dash-sleep" height="150"></canvas>
         </div>
       </div>
 
-      <div class="card" style="margin-top:1rem">
-        <div class="card-head"><span>Today's activity log</span></div>
-        <div id="activity-log" class="log-list"></div>
+      <div class="card mt1">
+        <div class="card-hd"><span class="card-title"><i class="ti ti-activity icon-sm green"></i> Today's activity</span></div>
+        <div id="dash-log" class="log-wrap"></div>
+      </div>
+
+      <div class="card mt1">
+        <div class="card-hd"><span class="card-title"><i class="ti ti-bulb icon-sm amber"></i> Daily quote</span></div>
+        <p class="quote-text" id="dash-quote"></p>
       </div>
     </div>
 
-    <!-- TIMER PAGE -->
+    <!-- ── TIMER ── -->
     <div id="page-timer" class="page">
-      <div class="page-header"><h1>Pomodoro timer</h1></div>
+      <div class="page-hd"><h1><i class="ti ti-clock icon-sm violet"></i> Pomodoro Timer</h1></div>
 
       <div class="timer-layout">
-        <div class="card timer-main">
+        <div class="card timer-card">
+          <!-- Mode tabs -->
           <div class="mode-tabs">
-            <button class="mode-tab active" onclick="setTimerMode('focus')">Focus</button>
-            <button class="mode-tab" onclick="setTimerMode('short')">Short break</button>
-            <button class="mode-tab" onclick="setTimerMode('long')">Long break</button>
+            <button class="mtab active" onclick="setMode('focus')">Focus</button>
+            <button class="mtab" onclick="setMode('short')">Short break</button>
+            <button class="mtab" onclick="setMode('long')">Long break</button>
           </div>
 
+          <!-- Ring -->
           <div class="ring-wrap">
-            <svg id="ring-svg" viewBox="0 0 220 220">
-              <circle id="ring-bg" cx="110" cy="110" r="100"/>
-              <circle id="ring-prog" cx="110" cy="110" r="100"/>
+            <svg viewBox="0 0 220 220" class="ring-svg">
+              <circle class="ring-bg" cx="110" cy="110" r="98"/>
+              <circle id="ring-fg" class="ring-fg" cx="110" cy="110" r="98"/>
             </svg>
             <div class="ring-center">
-              <div class="timer-time" id="timer-disp">25:00</div>
-              <div class="timer-mode-lbl" id="timer-mode-lbl">focus time</div>
+              <div class="ring-time" id="t-disp">25:00</div>
+              <div class="ring-lbl" id="t-lbl">FOCUS TIME</div>
             </div>
           </div>
 
-          <div class="session-dots" id="session-dots"></div>
+          <!-- Dots -->
+          <div class="sess-dots" id="sess-dots"></div>
 
-          <div class="timer-controls">
-            <button class="btn-icon-lg" onclick="skipTimerSession()" aria-label="Skip"><i class="ti ti-player-skip-forward"></i></button>
-            <button class="btn-play" id="play-btn" onclick="toggleTimer()"><i class="ti ti-player-play" id="play-icon"></i></button>
-            <button class="btn-icon-lg" onclick="resetTimer()" aria-label="Reset"><i class="ti ti-refresh"></i></button>
+          <!-- Controls -->
+          <div class="t-controls">
+            <button class="t-btn-sm" onclick="skipSession()" title="Skip"><i class="ti ti-player-skip-forward"></i></button>
+            <button class="t-btn-play" id="play-btn" onclick="toggleTimer()"><i class="ti ti-player-play" id="play-icon"></i></button>
+            <button class="t-btn-sm" onclick="resetTimer()" title="Reset"><i class="ti ti-refresh"></i></button>
           </div>
 
-          <div class="timer-stats-row">
-            <div class="t-stat"><div class="t-stat-val" id="ts-sessions">0</div><div class="t-stat-lbl">Sessions</div></div>
-            <div class="t-stat"><div class="t-stat-val" id="ts-focus">0m</div><div class="t-stat-lbl">Focus today</div></div>
-            <div class="t-stat"><div class="t-stat-val" id="ts-streak">0</div><div class="t-stat-lbl">Streak</div></div>
+          <!-- Today stats -->
+          <div class="t-stats">
+            <div class="t-stat"><div class="t-sv" id="ts-sess">0</div><div class="t-sl">Sessions</div></div>
+            <div class="t-stat"><div class="t-sv" id="ts-focus">0m</div><div class="t-sl">Focus time</div></div>
+            <div class="t-stat"><div class="t-sv" id="ts-streak">0</div><div class="t-sl">Streak</div></div>
+          </div>
+
+          <!-- Ambient sound -->
+          <div class="ambient-bar">
+            <span class="ambient-lbl"><i class="ti ti-music"></i> Ambient sound</span>
+            <div class="ambient-btns">
+              <button class="amb-btn active" data-type="off" onclick="setAmbient('off',this)"><i class="ti ti-volume-off"></i> Off</button>
+              <button class="amb-btn" data-type="rain" onclick="setAmbient('rain',this)">🌧 Rain</button>
+              <button class="amb-btn" data-type="white" onclick="setAmbient('white',this)">〰 White</button>
+              <button class="amb-btn" data-type="brown" onclick="setAmbient('brown',this)">🌊 Brown</button>
+              <button class="amb-btn" data-type="cafe" onclick="setAmbient('cafe',this)">☕ Café</button>
+            </div>
           </div>
         </div>
 
         <div class="timer-side">
+          <!-- Current task -->
           <div class="card">
-            <div class="card-head"><span><i class="ti ti-checkbox"></i> Tasks</span></div>
-            <div class="task-input-row">
-              <input type="text" id="task-input" placeholder="Add a task…" onkeydown="if(event.key==='Enter')addTask()"/>
-              <button onclick="addTask()"><i class="ti ti-plus"></i></button>
+            <div class="card-hd"><span class="card-title"><i class="ti ti-pencil icon-sm amber"></i> Working on</span></div>
+            <input class="working-input" id="working-on" type="text" placeholder="What are you studying?"/>
+          </div>
+
+          <!-- Tasks -->
+          <div class="card mt1">
+            <div class="card-hd"><span class="card-title"><i class="ti ti-checkbox icon-sm purple"></i> Tasks</span></div>
+            <div class="task-row">
+              <input type="text" class="task-inp" id="task-inp" placeholder="Add task…" onkeydown="if(event.key==='Enter')addTask()"/>
+              <button class="task-add-btn" onclick="addTask()"><i class="ti ti-plus"></i></button>
             </div>
             <div id="task-list"></div>
           </div>
 
-          <div class="card" style="margin-top:1rem">
-            <div class="card-head"><span><i class="ti ti-settings"></i> Settings</span></div>
-            <div class="setting-row">
-              <span>Focus duration</span>
-              <div class="dur-ctrl">
-                <button class="dur-btn" onclick="adjDur('focus',-5)">−</button>
-                <span id="dur-focus">25m</span>
-                <button class="dur-btn" onclick="adjDur('focus',5)">+</button>
-              </div>
-            </div>
-            <div class="setting-row">
-              <span>Short break</span>
-              <div class="dur-ctrl">
-                <button class="dur-btn" onclick="adjDur('short',-1)">−</button>
-                <span id="dur-short">5m</span>
-                <button class="dur-btn" onclick="adjDur('short',1)">+</button>
-              </div>
-            </div>
-            <div class="setting-row">
-              <span>Long break</span>
-              <div class="dur-ctrl">
-                <button class="dur-btn" onclick="adjDur('long',-5)">−</button>
-                <span id="dur-long">15m</span>
-                <button class="dur-btn" onclick="adjDur('long',5)">+</button>
-              </div>
-            </div>
-            <div class="setting-row">
-              <span>Sound</span>
-              <label class="toggle"><input type="checkbox" id="snd-on" checked/><span class="tog-sl"></span></label>
-            </div>
-            <div class="setting-row">
-              <span>Tick sound</span>
-              <label class="toggle"><input type="checkbox" id="tick-on"/><span class="tog-sl"></span></label>
-            </div>
-            <div class="setting-row">
-              <span>Auto-start breaks</span>
-              <label class="toggle"><input type="checkbox" id="auto-on"/><span class="tog-sl"></span></label>
-            </div>
+          <!-- Settings -->
+          <div class="card mt1">
+            <div class="card-hd"><span class="card-title"><i class="ti ti-settings icon-sm coral"></i> Settings</span></div>
+            <div class="setting-r"><span>Focus duration</span><div class="dur-c"><button class="d-btn" onclick="adjDur('focus',-5)">−</button><span id="d-focus">25m</span><button class="d-btn" onclick="adjDur('focus',5)">+</button></div></div>
+            <div class="setting-r"><span>Short break</span><div class="dur-c"><button class="d-btn" onclick="adjDur('short',-1)">−</button><span id="d-short">5m</span><button class="d-btn" onclick="adjDur('short',1)">+</button></div></div>
+            <div class="setting-r"><span>Long break</span><div class="dur-c"><button class="d-btn" onclick="adjDur('long',-5)">−</button><span id="d-long">15m</span><button class="d-btn" onclick="adjDur('long',5)">+</button></div></div>
+            <div class="setting-r"><span><i class="ti ti-bell"></i> Bell sound</span><label class="tog"><input type="checkbox" id="snd" checked/><span class="tsl"></span></label></div>
+            <div class="setting-r"><span><i class="ti ti-clock"></i> Tick sound</span><label class="tog"><input type="checkbox" id="tick"/><span class="tsl"></span></label></div>
+            <div class="setting-r"><span><i class="ti ti-player-play"></i> Auto-start</span><label class="tog"><input type="checkbox" id="auto"/><span class="tsl"></span></label></div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- SLEEP PAGE -->
+    <!-- ── SLEEP ── -->
     <div id="page-sleep" class="page">
-      <div class="page-header"><h1>Sleep tracker</h1></div>
-
-      <div class="two-col" style="margin-bottom:1rem">
+      <div class="page-hd"><h1><i class="ti ti-moon icon-sm blue"></i> Sleep Tracker</h1></div>
+      <div class="grid-2">
         <div class="card">
-          <div class="card-head"><span>Log sleep</span></div>
-          <div class="form-group">
-            <label>Bedtime</label>
-            <input type="time" id="sleep-bed"/>
-          </div>
-          <div class="form-group">
-            <label>Wake-up time</label>
-            <input type="time" id="sleep-wake"/>
-          </div>
-          <div class="form-group">
-            <label>Date</label>
-            <input type="date" id="sleep-date"/>
-          </div>
-          <div class="form-group">
-            <label>Quality (1–5)</label>
-            <div class="star-row" id="sleep-stars">
-              <i class="ti ti-star" data-v="1" onclick="setSleepStar(1)"></i>
-              <i class="ti ti-star" data-v="2" onclick="setSleepStar(2)"></i>
-              <i class="ti ti-star" data-v="3" onclick="setSleepStar(3)"></i>
-              <i class="ti ti-star" data-v="4" onclick="setSleepStar(4)"></i>
-              <i class="ti ti-star" data-v="5" onclick="setSleepStar(5)"></i>
+          <div class="card-hd"><span class="card-title">Log sleep</span></div>
+          <div class="field-group"><label>Bedtime</label><input type="time" class="inp" id="sl-bed"/></div>
+          <div class="field-group"><label>Wake-up</label><input type="time" class="inp" id="sl-wake"/></div>
+          <div class="field-group"><label>Date</label><input type="date" class="inp" id="sl-date"/></div>
+          <div class="field-group">
+            <label>Quality</label>
+            <div class="stars" id="sl-stars">
+              <i class="ti ti-star" onclick="setStar(1)"></i>
+              <i class="ti ti-star" onclick="setStar(2)"></i>
+              <i class="ti ti-star" onclick="setStar(3)"></i>
+              <i class="ti ti-star" onclick="setStar(4)"></i>
+              <i class="ti ti-star" onclick="setStar(5)"></i>
             </div>
           </div>
-          <button class="btn-primary" onclick="logSleep()">Save sleep log</button>
+          <div class="field-group"><label>Notes (optional)</label><input type="text" class="inp" id="sl-note" placeholder="Any notes…"/></div>
+          <button class="btn-primary" onclick="logSleep()"><i class="ti ti-check"></i> Save sleep log</button>
         </div>
-
         <div class="card">
-          <div class="card-head"><span>Sleep stats</span></div>
-          <div class="sleep-stat-grid">
-            <div class="sleep-stat"><div class="ss-val" id="avg-sleep">—</div><div class="ss-lbl">Avg hours</div></div>
-            <div class="sleep-stat"><div class="ss-val" id="best-sleep">—</div><div class="ss-lbl">Best night</div></div>
-            <div class="sleep-stat"><div class="ss-val" id="avg-quality">—</div><div class="ss-lbl">Avg quality</div></div>
-            <div class="sleep-stat"><div class="ss-val" id="sleep-streak">0</div><div class="ss-lbl">Logged days</div></div>
+          <div class="card-hd"><span class="card-title">Sleep stats</span></div>
+          <div class="sleep-stats-grid">
+            <div class="ss-card blue"><div class="ss-v" id="ss-avg">—</div><div class="ss-l">Avg hours</div></div>
+            <div class="ss-card green"><div class="ss-v" id="ss-best">—</div><div class="ss-l">Best night</div></div>
+            <div class="ss-card purple"><div class="ss-v" id="ss-qual">—</div><div class="ss-l">Avg quality</div></div>
+            <div class="ss-card amber"><div class="ss-v" id="ss-days">0</div><div class="ss-l">Logged nights</div></div>
           </div>
-          <canvas id="chart-sleep-page" height="120" style="margin-top:1rem"></canvas>
+          <canvas id="c-sleep" height="120" style="margin-top:1rem"></canvas>
         </div>
       </div>
-
-      <div class="card">
-        <div class="card-head"><span>Sleep history</span></div>
-        <div id="sleep-history" class="log-list"></div>
+      <div class="card mt1">
+        <div class="card-hd"><span class="card-title">Sleep history</span></div>
+        <div id="sleep-hist" class="log-wrap"></div>
       </div>
     </div>
 
-    <!-- HABITS PAGE -->
+    <!-- ── HABITS ── -->
     <div id="page-habits" class="page">
-      <div class="page-header">
-        <h1>Habits</h1>
-        <button class="btn-secondary" onclick="openHabitModal()"><i class="ti ti-plus"></i> New habit</button>
+      <div class="page-hd">
+        <h1><i class="ti ti-heart icon-sm green"></i> Habits</h1>
+        <button class="btn-sec" onclick="openHModal()"><i class="ti ti-plus"></i> New habit</button>
       </div>
-
-      <div class="card" style="margin-bottom:1rem">
-        <div class="card-head"><span>Today — <span id="habit-date"></span></span></div>
+      <div class="card mb1">
+        <div class="card-hd"><span class="card-title">Today — <span id="hd-today"></span></span></div>
         <div id="habits-today"></div>
       </div>
-
       <div class="card">
-        <div class="card-head"><span>Weekly overview</span></div>
-        <div id="habits-week-grid"></div>
+        <div class="card-hd"><span class="card-title">Weekly overview</span></div>
+        <div id="habits-week"></div>
       </div>
-
-      <div id="habit-modal" class="modal-overlay" style="display:none">
+      <!-- Modal -->
+      <div id="h-modal" class="modal-bg" style="display:none">
         <div class="modal-box">
-          <div class="modal-head"><span>New habit</span><button onclick="closeHabitModal()"><i class="ti ti-x"></i></button></div>
-          <label>Habit name</label>
-          <input type="text" id="habit-name-input" placeholder="e.g. Read for 30 min"/>
+          <div class="modal-hd"><span>New habit</span><button onclick="closeHModal()"><i class="ti ti-x"></i></button></div>
+          <label>Name</label><input type="text" class="inp" id="h-name" placeholder="e.g. Read for 30 min"/>
+          <label>Emoji</label><input type="text" class="inp" id="h-emoji" placeholder="📚" maxlength="2"/>
           <label>Category</label>
-          <select id="habit-cat">
-            <option value="study">Study</option>
-            <option value="health">Health</option>
-            <option value="mindfulness">Mindfulness</option>
-            <option value="exercise">Exercise</option>
-            <option value="other">Other</option>
+          <select class="inp" id="h-cat">
+            <option value="study">📖 Study</option>
+            <option value="health">🏃 Health</option>
+            <option value="mind">🧘 Mindfulness</option>
+            <option value="exercise">💪 Exercise</option>
+            <option value="other">✨ Other</option>
           </select>
-          <label>Emoji icon</label>
-          <input type="text" id="habit-emoji" placeholder="📚" maxlength="2"/>
-          <button class="btn-primary" onclick="saveHabit()" style="margin-top:1rem">Add habit</button>
+          <button class="btn-primary" onclick="saveHabit()" style="margin-top:1rem"><i class="ti ti-plus"></i> Add habit</button>
         </div>
       </div>
     </div>
 
-    <!-- ANALYTICS PAGE -->
+    <!-- ── WATER ── -->
+    <div id="page-water" class="page">
+      <div class="page-hd"><h1><i class="ti ti-droplet icon-sm cyan"></i> Water Tracker</h1></div>
+      <div class="grid-2">
+        <div class="card water-main-card">
+          <div class="water-goal-label">Daily goal: <span id="w-goal-lbl">8 glasses</span></div>
+          <div class="water-ring-wrap">
+            <svg viewBox="0 0 200 200" class="water-ring-svg">
+              <circle class="wr-bg" cx="100" cy="100" r="85"/>
+              <circle class="wr-fg" id="wr-fg" cx="100" cy="100" r="85"/>
+            </svg>
+            <div class="water-center">
+              <div class="water-num" id="w-count">0</div>
+              <div class="water-sub">glasses</div>
+            </div>
+          </div>
+          <div class="water-cups" id="w-cups"></div>
+          <div class="water-btns">
+            <button class="w-btn-add" onclick="addWater()"><i class="ti ti-plus"></i> Add glass</button>
+            <button class="w-btn-rem" onclick="removeWater()"><i class="ti ti-minus"></i></button>
+          </div>
+          <div class="setting-r mt1"><span>Daily goal (glasses)</span><div class="dur-c"><button class="d-btn" onclick="adjWGoal(-1)">−</button><span id="w-goal-num">8</span><button class="d-btn" onclick="adjWGoal(1)">+</button></div></div>
+        </div>
+        <div class="card">
+          <div class="card-hd"><span class="card-title">Weekly water</span></div>
+          <canvas id="c-water" height="200"></canvas>
+          <div class="water-stats mt1">
+            <div class="ws-item"><div class="ws-v" id="wst-avg">0</div><div class="ws-l">Avg / day</div></div>
+            <div class="ws-item"><div class="ws-v" id="wst-best">0</div><div class="ws-l">Best day</div></div>
+            <div class="ws-item"><div class="ws-v" id="wst-streak">0</div><div class="ws-l">Goal streak</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── NOTES ── -->
+    <div id="page-notes" class="page">
+      <div class="page-hd">
+        <h1><i class="ti ti-notes icon-sm amber"></i> Study Notes</h1>
+        <button class="btn-sec" onclick="newNote()"><i class="ti ti-plus"></i> New note</button>
+      </div>
+      <div class="notes-layout">
+        <div class="notes-list card" id="notes-list"></div>
+        <div class="note-editor card" id="note-editor">
+          <div class="note-editor-hd">
+            <input type="text" class="note-title-inp" id="note-title" placeholder="Note title…"/>
+            <div class="note-editor-actions">
+              <button class="btn-icon-sm" onclick="saveNote()"><i class="ti ti-device-floppy"></i> Save</button>
+              <button class="btn-icon-sm danger" onclick="deleteNote()"><i class="ti ti-trash"></i></button>
+            </div>
+          </div>
+          <div class="note-tags-row">
+            <input type="text" class="note-tag-inp" id="note-tags" placeholder="Tags: math, physics…"/>
+          </div>
+          <textarea class="note-body" id="note-body" placeholder="Start writing your study notes…"></textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── ANALYTICS ── -->
     <div id="page-analytics" class="page">
-      <div class="page-header"><h1>Analytics</h1></div>
-
-      <div class="stats-grid">
-        <div class="stat-card purple">
-          <i class="ti ti-clock stat-icon"></i>
-          <div class="stat-val" id="an-total-focus">0h</div>
-          <div class="stat-lbl">Total focus time</div>
-        </div>
-        <div class="stat-card teal">
-          <i class="ti ti-moon stat-icon"></i>
-          <div class="stat-val" id="an-avg-sleep">—</div>
-          <div class="stat-lbl">Avg sleep / night</div>
-        </div>
-        <div class="stat-card amber">
-          <i class="ti ti-trophy stat-icon"></i>
-          <div class="stat-val" id="an-best-day">—</div>
-          <div class="stat-lbl">Best focus day</div>
-        </div>
-        <div class="stat-card blue">
-          <i class="ti ti-calendar stat-icon"></i>
-          <div class="stat-val" id="an-days">0</div>
-          <div class="stat-lbl">Days tracked</div>
-        </div>
+      <div class="page-hd"><h1><i class="ti ti-chart-line icon-sm coral"></i> Analytics</h1></div>
+      <div class="kpi-row">
+        <div class="kpi purple"><i class="ti ti-clock"></i><div class="kpi-val" id="an-focus">0h</div><div class="kpi-lbl">Total focus</div></div>
+        <div class="kpi blue"><i class="ti ti-moon"></i><div class="kpi-val" id="an-sleep">—</div><div class="kpi-lbl">Avg sleep</div></div>
+        <div class="kpi amber"><i class="ti ti-trophy"></i><div class="kpi-val" id="an-best">—</div><div class="kpi-lbl">Best day</div></div>
+        <div class="kpi green"><i class="ti ti-calendar"></i><div class="kpi-val" id="an-days">0</div><div class="kpi-lbl">Days tracked</div></div>
       </div>
-
-      <div class="card" style="margin-top:1rem">
-        <div class="card-head"><span>Focus time — last 14 days</span></div>
-        <canvas id="chart-focus-14" height="180"></canvas>
+      <div class="card mt1">
+        <div class="card-hd"><span class="card-title"><i class="ti ti-clock icon-sm purple"></i> Focus — last 14 days</span></div>
+        <canvas id="c-an-focus" height="180"></canvas>
       </div>
-
-      <div class="two-col" style="margin-top:1rem">
+      <div class="grid-2 mt1">
         <div class="card">
-          <div class="card-head"><span>Daily time breakdown</span></div>
-          <canvas id="chart-pie" height="200"></canvas>
+          <div class="card-hd"><span class="card-title"><i class="ti ti-chart-pie icon-sm amber"></i> Daily time split</span></div>
+          <canvas id="c-pie" height="200"></canvas>
         </div>
         <div class="card">
-          <div class="card-head"><span>Sleep vs focus correlation</span></div>
-          <canvas id="chart-scatter" height="200"></canvas>
+          <div class="card-hd"><span class="card-title"><i class="ti ti-chart-dots icon-sm coral"></i> Sleep vs Focus</span></div>
+          <canvas id="c-scatter" height="200"></canvas>
         </div>
       </div>
-
-      <div class="card" style="margin-top:1rem">
-        <div class="card-head"><span>Full activity log</span></div>
-        <div id="full-log" class="log-list"></div>
+      <div class="card mt1">
+        <div class="card-hd"><span class="card-title"><i class="ti ti-list icon-sm green"></i> Full activity log</span></div>
+        <div id="an-log" class="log-wrap"></div>
       </div>
     </div>
 
-    <!-- PROFILE PAGE -->
+    <!-- ── PROFILE ── -->
     <div id="page-profile" class="page">
-      <div class="page-header"><h1>Profile</h1></div>
-
+      <div class="page-hd"><h1><i class="ti ti-user icon-sm pink"></i> Profile</h1></div>
       <div class="profile-layout">
+        <!-- Profile card -->
         <div class="card profile-card">
-          <div class="avatar-upload-wrap">
-            <div class="avatar-lg" id="profile-avatar"></div>
-            <label class="avatar-upload-btn" for="avatar-input"><i class="ti ti-camera"></i></label>
-            <input type="file" id="avatar-input" accept="image/*" onchange="uploadAvatar(this)" style="display:none"/>
+          <div class="av-upload-wrap">
+            <div class="av av-xl" id="pr-av"></div>
+            <label class="av-upload-btn" for="av-file"><i class="ti ti-camera"></i></label>
+            <input type="file" id="av-file" accept="image/*" onchange="uploadAv(this)" style="display:none"/>
           </div>
-          <div class="profile-name-big" id="profile-name-big"></div>
-          <div class="profile-email-big" id="profile-email-big"></div>
-          <div class="profile-badges" id="profile-badges"></div>
+          <div class="pr-name" id="pr-name"></div>
+          <div class="pr-email" id="pr-email"></div>
+          <div class="pr-badges" id="pr-badges"></div>
+          <div class="pr-joined" id="pr-joined"></div>
         </div>
 
-        <div style="flex:1">
-          <div class="card" style="margin-bottom:1rem">
-            <div class="card-head"><span>Edit profile</span></div>
-            <label>Full name</label>
-            <input type="text" id="edit-name"/>
-            <label style="margin-top:10px">Bio</label>
-            <textarea id="edit-bio" rows="3" placeholder="Tell us about yourself…" style="width:100%;resize:vertical;margin-top:4px"></textarea>
-            <label style="margin-top:10px">Daily focus goal (minutes)</label>
-            <input type="number" id="edit-goal" min="10" max="600"/>
-            <label style="margin-top:10px">Sleep goal (hours)</label>
-            <input type="number" id="edit-sleep-goal" min="4" max="12" step="0.5"/>
-            <button class="btn-primary" onclick="saveProfile()" style="margin-top:1rem">Save changes</button>
+        <div class="profile-right">
+          <!-- Edit form -->
+          <div class="card mb1">
+            <div class="card-hd"><span class="card-title"><i class="ti ti-edit icon-sm purple"></i> Edit profile</span></div>
+            <label>Full name</label><input type="text" class="inp mt4" id="pr-edit-name"/>
+            <label class="mt1">Bio</label><textarea class="inp mt4" id="pr-edit-bio" rows="2" placeholder="Tell us about yourself…"></textarea>
+            <label class="mt1">Focus goal (minutes/day)</label><input type="number" class="inp mt4" id="pr-edit-goal"/>
+            <label class="mt1">Sleep goal (hours/night)</label><input type="number" class="inp mt4" id="pr-edit-sg" step="0.5"/>
+            <button class="btn-primary mt1" onclick="saveProfile()"><i class="ti ti-check"></i> Save changes</button>
           </div>
 
+          <!-- Achievements -->
           <div class="card">
-            <div class="card-head"><span>Your achievements</span></div>
-            <div id="achievements-grid" class="ach-grid"></div>
+            <div class="card-hd"><span class="card-title"><i class="ti ti-trophy icon-sm amber"></i> Achievements</span></div>
+            <div id="ach-grid" class="ach-grid"></div>
           </div>
         </div>
       </div>
     </div>
 
   </main>
+
+  <!-- BOTTOM NAV (mobile) -->
+  <nav id="bottom-nav">
+    <button class="bn active" data-p="dashboard" onclick="navigate('dashboard')"><i class="ti ti-layout-dashboard"></i><span>Home</span></button>
+    <button class="bn" data-p="timer" onclick="navigate('timer')"><i class="ti ti-clock"></i><span>Timer</span></button>
+    <button class="bn" data-p="sleep" onclick="navigate('sleep')"><i class="ti ti-moon"></i><span>Sleep</span></button>
+    <button class="bn" data-p="habits" onclick="navigate('habits')"><i class="ti ti-heart"></i><span>Habits</span></button>
+    <button class="bn" data-p="profile" onclick="navigate('profile')"><i class="ti ti-user"></i><span>Profile</span></button>
+  </nav>
+
 </div>
+
+<!-- SIDEBAR OVERLAY -->
+<div id="sb-overlay" onclick="closeSidebar()"></div>
 
 <!-- TOAST -->
 <div id="toast" class="toast"></div>
